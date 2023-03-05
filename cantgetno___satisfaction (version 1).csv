@@ -1,4 +1,65 @@
-﻿;;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday
-D;07:00 - 15:00;general;;;;general;;
-A;15:00 - 23:00;;general;;;;;
-N;23:00 - 07:00;;;;general;;;general
+﻿fase 1;;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday;uren
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;general;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;general;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;general;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;general;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+;;;;;;;;;
+fase 2;;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday;uren
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;general;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+;;;;;;;;;
+;;;;;;;;;
+fase 3;;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday;uren
+D;07:00 - 15:00;;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;general;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;;;;;general;;;
+A;15:00 - 23:00;;general;general;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;;;;;general;;;
+A;15:00 - 23:00;;general;;;;;;
+N;23:00 - 07:00;;;general;general;;;general;
+;;;;;;;;;40
+;;;;;;;;;
+D;07:00 - 15:00;;;;;general;;;
+A;15:00 - 23:00;;general;general;;;;;
+N;23:00 - 07:00;;;;general;;;general;
+;;;;;;;;;40
