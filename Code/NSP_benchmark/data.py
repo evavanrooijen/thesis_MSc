@@ -8,13 +8,14 @@ import timeit
 
 # instance has nurses, shifts, ..
 class Instance:
-    horizon: int
-    shift_types: dict,
-    nurses: dict,
-    days_off: dict,
-    requests: dict,
-    shifts_off: dict,
-    cover: dict
+    nurses: set  # I
+    time_horizon: int # h
+    days: set # D
+    weekends: set # W
+    shift_types: set # T
+    shift_types_not_allowed: set # R_t
+    days_off: set # N_i
+    length_shift: dict # l_t
 
     # find schedule
 

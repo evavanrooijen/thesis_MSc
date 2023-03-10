@@ -1,9 +1,3 @@
-import pandas as pd
-import numpy as np
-import timeit
-import csv
-import data, model, app
-
 file = 'Code\NSP_benchmark\instances1_24\Instance1.txt'
 instance = import_instance(file)
 

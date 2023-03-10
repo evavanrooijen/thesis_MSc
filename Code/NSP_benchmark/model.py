@@ -9,8 +9,13 @@ def find_schedule(instance):
 
     NSP = Model('NSP')
     #NSP.context.cplex_parameters.mip.tolerances.mipgap = 0 # check if gap is always 0 ensured
-    NSP.set_time_limit(1*60) # in seconds CHECK
+    NSP.set_time_limit(1*60) # seconds
+
+    # decision variables
     x = NSP.binary_var_matrix(N_nurses, N_shifts, name = "x")
+    k = NSP.binary_var_matrix(N_nurses, N_weekends, name = "w")
+    y = NSP.integer_var_matrix(N_shifts, time_horizon, name = "y")
+    z = NSP.integer_var_matrix(N_shifts, time_horizon, name="z")
 
     obj_fn = sum(values[i]*p[i] for i in range(n))
     NSP.set_objective('max', obj_fn)
