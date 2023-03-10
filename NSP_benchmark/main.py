@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import timeit
 import csv
-import data, model, app
+import model
 
-file = 'Code\NSP_benchmark\instances1_24\Instance1.txt'
+file = r'Code\NSP_benchmark\instances1_24\Instance1.txt'
 instance = import_instance(file)
 
 # solve LP to find base schedule
