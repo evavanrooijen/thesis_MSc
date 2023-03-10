@@ -8,23 +8,17 @@ import streamlit as st
 class Instance:
     instance_ID: int
     horizon: int
-    S: set # set of shits (list or set? set cause unique set, no duplicate nurses)
+    S: set # set of shifts
     N: set # set of nurses
-    D: set = field(init = False) # days
-    W: list = field(init = False) # weekends
-
-    # all of these can be features of either nurse i, shift type t or day d
-    # shifts_cannot_follow_this: dict
-    # days_off: dict
-    # length_shift: dict
-
+    D: set = field(init = False)
+    W: list = field(init = False)
 
     def __str__(self):
         return f"Instance {self.instance_ID} ({self.horizon} days)"
 
     def __post_init__(self):
-        self.D = set(range(1, self.horizon+1))
-        self.W = list(range(1, int(self.horizon/7+1)))
+        self.D = set(range(1, self.horizon+1)) # days
+        self.W = list(range(1, int(self.horizon/7+1))) # weekends
 
     def __hash__(self):
         return hash(self.instance_ID)
@@ -32,8 +26,6 @@ class Instance:
     def __eq__(self, other):
         if not isinstance(other, type(self)): return NotImplemented
         return self.instance_ID == other.instance_ID
-
-    # find schedule
 
 print(Instance(1, 14, {}, {}))
 
@@ -96,15 +88,13 @@ class Request:
         if not isinstance(other, type(self)): return NotImplemented
         return self.request_ID == other.request_ID
 
-#print(Request(1, 'A', 'D', 2, 2))
-
 @dataclass
 class Shift:
     numerical_ID: int
     shift_ID: str
     length_in_min: int
     cover_req: dict
-    shifts_cannot_follow_this: list
+    shifts_cannot_follow_this: list # u must be the numerical shift ID of the shift that cannot follow shift t
 
     def __str__(self):
         return f"Shift {self.shift_ID} ({self.length_in_min / 60} hrs)"
@@ -155,63 +145,51 @@ def find_schedule(instance):
     W = instance.W
     time_horizon = instance.horizon
     D = instance.D
+    # requests 3D, to calculate obj_requests
 
     # define MIP
     # demo: have shifts to cover and set of nurses with different weekend preferences (check CAO!)
     # by changing their weekend tolerance, show differences in schedule
     # some like weekends: pay others do not: personal life
 
+    # satisfaction is dan assigned_weekends/preference_weekends en maxmin
+    # objective: maxmin satisfaction + penalty unassigned shifts
+
     NSP = Model('NSP')
-    #NSP.context.cplex_parameters.mip.tolerances.mipgap = 0 # check if gap is always 0 ensured
+    NSP.context.cplex_parameters.mip.tolerances.mipgap = 0 # check if gap is always 0 ensured
     NSP.set_time_limit(1*60) # seconds
 
     # decision variables
     x = NSP.binary_var_dict((i, d, s) for i in range(len(N)) for d in range(1, time_horizon+1) for s in range(len(S)))
-    k = NSP.binary_var_matrix(len(N), len(W), name = "w")
+    k = NSP.binary_var_matrix(len(N), range(1, len(W)+1), name = "w")
     y = NSP.integer_var_matrix(range(1, time_horizon+1), len(S), name = "y")
     z = NSP.integer_var_matrix(range(1, time_horizon+1), len(S), name="z")
 
-    obj_fn = NSP.sum([y[day, shift.numerical_ID]*get_weight_under(shift, day) + z[day, shift.numerical_ID]*get_weight_over(shift, day) for shift in S for day in D])
-    #
-    # def obj_fn():
-    #     obj_cover = 0
-    #     obj_assigned = 0
-    #     obj_unassigned = 0
-    #     for day in D:
-    #         for shift in S:
-    #             # df = shift.cover_req
-    #             # weight_over = int(df.loc[(df['Day'] == day) & (df['ShiftID'] == shift.shift_ID)].weight_over)
-    #             # weight_under = int(df.loc[(df['Day'] == day) & (df['ShiftID'] == shift.shift_ID)].weight_under)
-    #             obj_cover = obj_cover + y[day, shift.numerical_ID]*get_weight_under(shift, day) + z[day, shift.numerical_ID]*get_weight_over(shift, day)
-    #
-    #     for nurse in N:
-    #         for day in D:
-    #             for shift in S:
-    #                 obj_unassigned = obj_unassigned + (1-x[nurse.numerical_ID, day, shift.numerical_ID]) # TODO: add penalty score
-    #                 obj_assigned = obj_assigned + x[nurse.numerical_ID, day, shift.numerical_ID] # TODO: add preference score
-    #
-    #     obj_requests = obj_assigned + obj_unassigned
-    #
-    #     #obj_fn = sum(x[nurse,day,shift] for nurse in range(len(N)) for shift in range(len(S)))
-    #     return obj_cover + obj_requests
-
-    NSP.set_objective('min', obj_fn)
+    # objective function
+    obj_cover = NSP.sum([y[day, shift.numerical_ID]*get_weight_under(shift, day) + z[day, shift.numerical_ID]*get_weight_over(shift, day) for shift in S for day in D])
+    obj_requests = NSP.sum([0*x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S for day in D for nurse in N])
+    # TODO: satisfaction score (consecutiveness)
+    NSP.set_objective('min', obj_cover + obj_requests)
 
     # constraint 1, max one shift per day per nurse
     for day in D:
         for nurse in N:
             NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) <= 1)
 
-    # constraint 2, shift rotation (not in instance 1)
+    # constraint 2, shift rotation (not in instance 1 so still needs to be tested)
+    for nurse in N:
+        for day in range(1, time_horizon):
+            for shift in S:
+                for u in shift.shifts_cannot_follow_this: # u must be the numerical shift ID of the shift that cannot follow shift t
+                    x[nurse.numerical_ID, day, shift.numerical_ID] + x[nurse.numerical_ID, day+1, u] <= 1
 
-    # constraint 3
+    # constraint 3: personal shift limitations
     for shift in S:
         for nurse in N:
             NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for day in D]) <= nurse.max_shifts.get(shift.shift_ID))
 
-    # constraint 4
+    # constraint 4: FTE
     for nurse in N:
-        # replace nurse by nurse and shift by t to test
         NSP.add_constraint(nurse.min_total_minutes <= sum([sum([x[nurse.numerical_ID, day, shift.numerical_ID]*shift.length_in_min for shift in S]) for day in D]))
         NSP.add_constraint(sum([sum([x[nurse.numerical_ID, day, shift.numerical_ID]*shift.length_in_min for shift in S]) for day in D]) <= nurse.max_total_minutes)
 
@@ -220,22 +198,34 @@ def find_schedule(instance):
         for day in range(1, time_horizon-nurse.max_consecutive_shifts + 1):
             NSP.add_constraint(sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day, day+nurse.max_consecutive_shifts+1)]) <= nurse.max_consecutive_shifts)
 
-    # constraint 6
+    # constraint 6: min consecutiveness
+    for nurse in N:
+        for s in range(1, nurse.min_consecutive_shifts):
+            for day in range(1, time_horizon-(s+2)):
+                NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (s-sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day+1, day+s+1)])) + sum([x[nurse.numerical_ID, day+s+1, shift.numerical_ID]for shift in S]) >= 0.00000000000001)
 
-    # constraint 7
+    # constraint 7: min consecutive days
+    for nurse in N:
+        for s in range(1, nurse.min_consecutive_days_off):
+            for day in range(1, time_horizon-(s+2)):
+                NSP.add_constraint(1 - sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day+1, day+s+1)])) + 1 - sum([x[nurse.numerical_ID, day+s+1, shift.numerical_ID]for shift in S]) >= 0.00000000000001)
 
-    # constraint 8
+    # # constraint 8: max weekends
     for nurse in N:
         for w in W:
-            continue
+            NSP.add_constraint(k[nurse.numerical_ID, w] <= sum([x[nurse.numerical_ID, (7*w-1), shift.numerical_ID] for shift in S]) + sum([x[nurse.numerical_ID, 7*w, shift.numerical_ID] for shift in S]))
+            NSP.add_constraint(sum([x[nurse.numerical_ID, (7*w-1), shift.numerical_ID] for shift in S]) + sum([x[nurse.numerical_ID, 7*w, shift.numerical_ID] for shift in S])<= 2*k[nurse.numerical_ID, w])
 
-    # constraint 9
+    for nurse in N:
+        NSP.add_constraint(sum([k[nurse.numerical_ID, w] for w in W]) <= nurse.max_weekends)
+
+    # constraint 9: days off
     for nurse in N:
         for day in nurse.days_off:
             for shift in S:
                 NSP.add_constraint(x[nurse.numerical_ID, day+1, shift.numerical_ID] == 0)
 
-    # constraint 10
+    # constraint 10: cover requirements
     for day in D:
         for shift in S:
             df = shift.cover_req
@@ -243,27 +233,13 @@ def find_schedule(instance):
 
             NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for nurse in N]) - z[day, shift.numerical_ID] + y[day, shift.numerical_ID] == shift_day_required)
 
-    # for shift in range(len(S)):
-    #     # every shift should be covered by exactly one nurse (or at least? depends on definition of a shift)
-    #     NSP.add_constraint(sum(x[nurse,day,shift] for nurse in range(len(N))) == 1)
-    #
-    # for nurse in range(len(N)):
-    #     # TODO: every nurse has a contract with FTE
-    #     NSP.add_constraint(i.min_total_minutes < sum(j.length_in_min*x.get(i, j) for shift in S) < i.max_total_minutes)
-    #
-    #     # TODO: max weekends: count assigned shifts on day 5, 6, 12, 13, ... horizon
-    #
-    #     # TODO: consecutiveness
-    #
-    #     # TODO: max nr shifts
-    #
-    #
-    #     #NSP.add_constraint(0 < i.max_weekends)
     sol = NSP.solve()
-
     gap = NSP.solve_details.mip_relative_gap
-
     print(f"Optimal objective value z = {NSP.objective_value}")
+    #print(f"Percentage of wishes granted = {NSP.objective_value}")
+    #print(f"Average satisfaction = {NSP.objective_value}")
+    # print coverage
+    # print satisfaction of the worst off nurse
 
     # visualize schedule, who works when
     schedule = pd.read_csv('data\schedule_to_fill.csv')
@@ -276,28 +252,12 @@ def find_schedule(instance):
                 else:
                     schedule.iloc[nurse.numerical_ID, day-1] = '_'
 
-    print(schedule) # to app
-    st.dataframe(schedule)
-
-
+    print(schedule) # to app st.dataframe(schedule)
     return NSP, sol
-
-    # satisfaction is dan assigned_weekends/preference_weekends en maxmin
-
-    # objective: maxmin satisfaction + penalty unassigned shifts
-
-    # constraints: copied from benchmark
-
-    # max one shift per day
-
-    # min full day rest between shifts (forward rotation)
-
-    # cover requirements
-
-    # solve
 
 # Instance 1 (ignoring all request in data and obj fn right now)
 cover = pd.read_csv(r'data\shift_cover_req.csv')
+cover2 = pd.read_csv(r'data\shift_cover_req_inst2.csv')
 nurse0 = Nurse(0, 'A', [0], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse1 = Nurse(1, 'B', [5], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse2 = Nurse(2, 'C', [8], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
@@ -309,20 +269,27 @@ nurse7 = Nurse(7, 'H', [7], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 
 S = {Shift(0, 'D', 480, cover, [])}
 N = {nurse0, nurse1, nurse2, nurse3, nurse4, nurse5, nurse6, nurse7}
+print(Request(1, 'A', 'D', 2, 2))
 inst_1 = Instance(1, 14, S, N)
 
 # Solve NSP for instance 1
 find_schedule(inst_1)
 
-# change consecutiveness preferences
-nurse0.max_consecutive_shifts = 1 # st.slider('consec preference')
+# change weekend pref (like more weekends cause extra pay)
+nurse0.max_weekends = 4
 find_schedule(inst_1)
 
-# # tests
-# file = r'D:\OneDrive - Ortec B.V\Thesis\Code\Code\NSP_benchmark\instances1_24\Instance1.txt'
-# print(import_instance(file, 1))
-# print(read_instance('NSP_benchmark\instances1_24\Instance1.txt'))
-#
+# change consecutiveness preferences
+nurse1.max_consecutive_shifts = 1 # more rest
+find_schedule(inst_1)
+
+nurse2.min_consecutive_shifts = 3 # more blocks TODO: look for bug here !
+find_schedule(inst_1)
+
+# tests & TBC
+# adding shift Shift(1, 'E', 480, cover2, [0]) breaks down system.. TBC
+
+
 # file = r"Code\NSP_benchmark\instances1_24\Instance1.txt"
 # #file = r"Code/NSP_benchmark/instances1_24/Instance1.txt"
 # with open(file) as f:
@@ -345,39 +312,7 @@ find_schedule(inst_1)
 #             nurse_ID =  lines[idx+1].split(',')[0]
 #             print(nurse_ID)
 #             None
-#
-# file = r"Code\NSP_benchmark\instances1_24\Instance1.txt"
-# instance_1 = import_instance(file, 1)
-# # print(find_schedule(instance_1))
-#     # gap = NSP.solve_details.mip_relative_gap
-#
-#     # #print(f"Optimal objective value z = {NSP.objective_value}")
-#     #
-#     # # visualize schedule, who works when
-#     #
-#     # # functions take solution as input and transform to readable schedule
-#     # # get schedule_per_nurse(i)
-#     # # get all shifts with nurse i
-#     # outcome = []
-#     # for v in NSP.iter_binary_vars():
-#     #     outcome.append(int(v.solution_value))
-#     #     #print(outcome)
-#     # return NSP.objective_value, gap
-#
-#
-#     # satisfaction is dan assigned_weekends/preference_weekends en maxmin
-#
-#     # objective: maxmin satisfaction + penalty unassigned shifts
-#
-#     # constraints: copied from benchmark
-#
-#     # max one shift per day
-#
-#     # min full day rest between shifts (forward rotation)
-#
-#     # cover requirements
-#
-#     # solve
+
 #
 # # def simulate_trades(Instance.S, Instance.N):
 # #     # selling, buying, shift_ID, day
@@ -396,7 +331,7 @@ find_schedule(inst_1)
 # def dept_schedule_satisfaction(dept_satisfactions):
 #     return (min(dept_satisfactions)) # objective is maximization of min
 #
-# # def update_preferences(changes):
+# # def update_preferences(changes or requests):
 # #     for change in changes:
 # #
 # #     # create table with changes by nurse
