@@ -298,10 +298,10 @@ def find_schedule(instance):
 
 # Instance 1 (ignoring all request in data and obj fn right now)
 cover = pd.read_csv(r'data\shift_cover_req.csv')
-nurse0 = Nurse(0, 'A', [0], {'D':14}, 4320, 3360, 1, 2, 2, 1, {}, {})
-nurse1 = Nurse(1, 'B', [5], {'D':14}, 4320, 3360, 1, 2, 2, 1, {}, {})
-nurse2 = Nurse(2, 'C', [8], {'D':14}, 4320, 3360, 1, 2, 2, 1, {}, {})
-nurse3 = Nurse(3, 'D', [2], {'D':14}, 4320, 3360, 1, 2, 2, 1, {}, {})
+nurse0 = Nurse(0, 'A', [0], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
+nurse1 = Nurse(1, 'B', [5], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
+nurse2 = Nurse(2, 'C', [8], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
+nurse3 = Nurse(3, 'D', [2], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse4 = Nurse(4, 'E', [9], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse5 = Nurse(5, 'F', [5], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse6 = Nurse(6, 'G', [1], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
@@ -312,6 +312,10 @@ N = {nurse0, nurse1, nurse2, nurse3, nurse4, nurse5, nurse6, nurse7}
 inst_1 = Instance(1, 14, S, N)
 
 # Solve NSP for instance 1
+find_schedule(inst_1)
+
+# change consecutiveness preferences
+nurse0.max_consecutive_shifts = 1 # st.slider('consec preference')
 find_schedule(inst_1)
 
 # # tests
