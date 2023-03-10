@@ -1,5 +1,4 @@
 # functions to import, preprocess and visualize data
-import pandas as pd
 from dataclasses import dataclass
 
 # classes: instance, nurse, schedule
@@ -69,7 +68,7 @@ class Shift:
     def __str__(self):
         return f"Shift {self.shift_ID} ({self.length_in_min / 60} hrs)"
 
-cover = pd.read_csv(r'D:\OneDrive - Ortec B.V\Thesis\Code\Code\NSP_benchmark\shift_cover_req.csv')
+cover = pd.read_csv(r'Code\NSP_benchmark\shift_cover_req.csv')
 print(cover.head())
 print(Shift('D', 480, cover.to_dict()))
 
