@@ -1,11 +1,13 @@
 import pandas as pd
 from dataclasses import dataclass, field
 from docplex.mp.model import Model
-import streamlit as st
 
 # instance has ID, nurses, shifts, days and time horizon
 @dataclass
 class Instance:
+    def __init__(self):
+        pass
+
     instance_ID: int
     horizon: int
     S: set # set of shifts
@@ -52,13 +54,14 @@ class Nurse:
         load = 8
         rest = 2
         self.satisfaction = load + rest
+        return load
 
-    def show_schedule(self, solution):
-        # for given solution (3D), show assigned shifts to nurse (2D) in df with
-        for v in NSP.iter_binary_vars():
-            print(v)#outcome.append(int(v.solution_value))
-
-        return schedule
+    # def show_schedule(self, solution):
+    #     # for given solution (3D), show assigned shifts to nurse (2D) in df with
+    #     for v in NSP.iter_binary_vars():
+    #         print(v) #outcome.append(int(v.solution_value))
+    #
+    #     return schedule
 
     def __str__(self):
         return f"Nurse {self.nurse_ID} ({self.max_total_minutes/60} hrs)"
@@ -242,7 +245,7 @@ def find_schedule(instance):
     # print satisfaction of the worst off nurse
 
     # visualize schedule, who works when
-    schedule = pd.read_csv('data\schedule_to_fill.csv')
+    schedule = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
     schedule.set_index('nurse', inplace= True)
     for nurse in N:
         for shift in S:
@@ -255,9 +258,43 @@ def find_schedule(instance):
     print(schedule) # to app st.dataframe(schedule)
     return NSP, sol
 
+def shift_satisfaction(shift, nurse): # TODO maybe make this nested in sequence to get nr prior cons shifts and shift prior and after...
+    # function to combine workload, wishes, recovery per shift (now assumed to be linear)
+    workload = 0 # shift_type*nurse.pref_type #TODO fix this
+    return shift_sat
+
+def sequence_satisfaction(sequence = [D, D, D], nurse):
+    # function to combine diversity, weekend, recovery, consecutiveness (now assumed to be linear)
+    diversity = len(set(sequence))
+    consecutiveness = len(sequence)/4
+    weekend = 0
+    recovery = recovery_seq(nurse, sequence[0], sequence[-1])
+
+    sequence_sat = diversity*nurse.pref_diversity + consecutiveness*nurse.pref_consecutiveness + weekend * nurse.pref_weekend + recovery * nurse.pref_recovery
+    return sequence_sat
+def satisfaction(schedule_nurse=[_, _, D, D, D, D, _], nurse='A'):
+    for idx in range(len(schedule_nurse)):
+        #recovery_shift(schedule_nurse[idx-1], schedule_nurse[idx+1])
+        nr_prior = len(schedule_nurse[:idx].rsplit('_', 1)# not _ before this index
+        return (nr_prior)
+        # workload_shift(schedule_nurse[idx], nr_prior, with_senior=False) # TODO with senior requires whole schedule, all nurses
+        # wish_shift = schedule_nurse[idx] in nurse.wishes_on # TODO check right wish
+        # shift_satisfaction = recovery_shift + workload_shift + wish_shift
+satisfaction(schedule_nurse=[_, _, D, D, D, D, _], nurse='A')
+
+    return satisfaction_score
+def evaluate_schedule(schedule):
+    schedule = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
+    schedule.set_index('nurse', inplace=True)
+    satisfaction_all = [satisfaction(row, nurse) for row in schedule]
+    return max(min(satisfaction_all))
+
+
+
+
 # Instance 1 (ignoring all request in data and obj fn right now)
-cover = pd.read_csv(r'data\shift_cover_req.csv')
-cover2 = pd.read_csv(r'data\shift_cover_req_inst2.csv')
+cover = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
+cover2 = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
 nurse0 = Nurse(0, 'A', [0], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse1 = Nurse(1, 'B', [5], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
 nurse2 = Nurse(2, 'C', [8], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
