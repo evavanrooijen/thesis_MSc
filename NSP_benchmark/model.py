@@ -2,7 +2,6 @@ import pandas as pd
 from dataclasses import dataclass, field
 from docplex.mp.model import Model
 
-
 # instance has ID, nurses, shifts, days and time horizon
 @dataclass
 class Instance:
