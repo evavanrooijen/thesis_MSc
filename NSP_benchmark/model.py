@@ -1,7 +1,7 @@
 import pandas as pd
 from dataclasses import dataclass, field
 from docplex.mp.model import Model
-
+import time
 
 # instance has ID, nurses, shifts, days and time horizon
 @dataclass
@@ -90,6 +90,7 @@ class Shift:
         return self.shift_ID == other.shift_ID
 
 def find_schedule(instance, weight_under = 100, weight_over = 1):
+    start = time.time()
     S = instance.S
     N = instance.N
     W = instance.W
@@ -212,7 +213,11 @@ def find_schedule(instance, weight_under = 100, weight_over = 1):
                     day, shift.numerical_ID] == shift_day_required)
 
     sol = NSP.solve()
-    print(f"Optimal objective value z = {NSP.objective_value} ({NSP.get_solve_details()}")
+    end = time.time()
+    runtime = end - start
+
+    print(f"Optimal objective value z = {NSP.objective_value} took {round(runtime, 2)} sec. ({NSP.get_solve_details()}")
+
 
     # print satisfaction of the worst off nurse
     under = sol.get_value(sum([y[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
@@ -255,7 +260,7 @@ def find_schedule(instance, weight_under = 100, weight_over = 1):
         schedule.to_csv(f'Schedule{instance.instance_ID}.csv')
 
     with open('benchmark_all_instances.txt', 'a') as f:
-        f.write(f'Instance {instance.instance_ID}, {round(under)}, {round(over)}, {round(obj_requests)}, {round(under*100+over+obj_requests)}  \n')
+        f.write(f'Instance {instance.instance_ID}, {round(under)}, {round(over)}, {round(obj_requests)}, {round(under*100+over+obj_requests)}, {round(runtime, 2)} sec  \n')
 
             # # consecutiveness preferences
             # working_on = False
