@@ -1,6 +1,7 @@
 import pandas as pd
 from dataclasses import dataclass, field
 from docplex.mp.model import Model
+import numpy as np
 
 # instance has ID, nurses, shifts, days and time horizon
 @dataclass
@@ -48,6 +49,11 @@ class Nurse:
     requestPenalty: float = 0
     consecutivenessPenalty: float = 0
     satisfaction: float = 0
+
+    def __post_init__(self):
+        # nr. of prefered days must be integer
+        self.pref_min_cons = round(np.random.normal(3, 1, 1)[0])
+        self.pref_max_cons = round(np.random.normal(5, 2, 1)[0]) # TODO: CHECK THESE WITH SURVEY
 
     def calc_satisfaction(self, sat_param):
         load = 8
@@ -336,9 +342,14 @@ def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_ov
         # combine requests and consecutiveness in Pi satisfaction score per nurse
         nurse.satisfaction = (1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
 
-    with open('scores1.txt', 'w') as f:
+    with open('scores1_random_preference_generator.txt', 'w') as f:
         f.write('NurseID, consecutiveness penalty (avg), requests penalty (sum), satisfaction (Pi) \n')
-        f.write(f'{nurse.nurse_ID}, {nurse.requestPenalty}, {nurse.consecutivenessPenalty}, {nurse.satisfaction} ')
+        worst_off = 0
+        for nurse in N:
+            f.write(f'{nurse.nurse_ID}, {nurse.requestPenalty}, {nurse.consecutivenessPenalty}, {nurse.satisfaction} \n')
+            if worst_off < nurse.satisfaction:
+                worst_off = nurse.satisfaction
+        f.write(f'Worst-off satisfaction score: {worst_off}\n')
 
     # visualize schedule, who works when, coverage and satisfaction indicator values
     if True:
