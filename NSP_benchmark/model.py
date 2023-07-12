@@ -258,38 +258,12 @@ def find_schedule(instance):
     print(schedule) # to app st.dataframe(schedule)
     return NSP, sol
 
-def shift_satisfaction(shift, nurse): # TODO maybe make this nested in sequence to get nr prior cons shifts and shift prior and after...
-    # function to combine workload, wishes, recovery per shift (now assumed to be linear)
-    workload = 0 # shift_type*nurse.pref_type #TODO fix this
-    return shift_sat
 
-def sequence_satisfaction(sequence = [D, D, D], nurse):
-    # function to combine diversity, weekend, recovery, consecutiveness (now assumed to be linear)
-    diversity = len(set(sequence))
-    consecutiveness = len(sequence)/4
-    weekend = 0
-    recovery = recovery_seq(nurse, sequence[0], sequence[-1])
-
-    sequence_sat = diversity*nurse.pref_diversity + consecutiveness*nurse.pref_consecutiveness + weekend * nurse.pref_weekend + recovery * nurse.pref_recovery
-    return sequence_sat
-def satisfaction(schedule_nurse=[_, _, D, D, D, D, _], nurse='A'):
-    for idx in range(len(schedule_nurse)):
-        #recovery_shift(schedule_nurse[idx-1], schedule_nurse[idx+1])
-        nr_prior = len(schedule_nurse[:idx].rsplit('_', 1)# not _ before this index
-        return (nr_prior)
-        # workload_shift(schedule_nurse[idx], nr_prior, with_senior=False) # TODO with senior requires whole schedule, all nurses
-        # wish_shift = schedule_nurse[idx] in nurse.wishes_on # TODO check right wish
-        # shift_satisfaction = recovery_shift + workload_shift + wish_shift
-satisfaction(schedule_nurse=[_, _, D, D, D, D, _], nurse='A')
-
-    return satisfaction_score
 def evaluate_schedule(schedule):
     schedule = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
     schedule.set_index('nurse', inplace=True)
     satisfaction_all = [satisfaction(row, nurse) for row in schedule]
     return max(min(satisfaction_all))
-
-
 
 
 # Instance 1 (ignoring all request in data and obj fn right now)
