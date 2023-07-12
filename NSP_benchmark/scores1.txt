@@ -1,0 +1,2 @@
+NurseID, consecutiveness penalty (avg), requests penalty (sum), satisfaction (Pi) 
+E, 0, 0.0, 0.0 
