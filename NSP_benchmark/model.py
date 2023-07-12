@@ -2,41 +2,40 @@ import pandas as pd
 from dataclasses import dataclass, field
 from docplex.mp.model import Model
 
+
 # instance has ID, nurses, shifts, days and time horizon
 @dataclass
 class Instance:
-    def __init__(self):
-        pass
-
     instance_ID: int
     horizon: int
-    S: set # set of shifts
-    N: set # set of nurses
-    D: set = field(init = False)
-    W: list = field(init = False)
+    S: set
+    N: set
+    req_on: dict
+    req_off: dict
+    D: set = field(init=False)
+    W: list = field(init=False)
 
     def __str__(self):
         return f"Instance {self.instance_ID} ({self.horizon} days)"
 
     def __post_init__(self):
-        self.D = set(range(1, self.horizon+1)) # days
-        self.W = list(range(1, int(self.horizon/7+1))) # weekends
+        self.D = set(range(1, self.horizon + 1))  # days
+        self.W = list(range(1, int(self.horizon / 7 + 1)))  # weekends
 
     def __hash__(self):
         return hash(self.instance_ID)
 
     def __eq__(self, other):
-        if not isinstance(other, type(self)): return NotImplemented
+        if not isinstance(other, type(self)):
+            return NotImplemented
         return self.instance_ID == other.instance_ID
-
-print(Instance(1, 14, {}, {}))
 
 # nurse has personal characteristics and preference parameters
 @dataclass
 class Nurse:
     numerical_ID: int
     nurse_ID: str
-    days_off: set
+    days_off: list
     max_shifts: dict
     max_total_minutes: int
     min_total_minutes: int
@@ -44,11 +43,13 @@ class Nurse:
     min_consecutive_shifts: int
     min_consecutive_days_off: int
     max_weekends: int
-    shifts_on_req: set # set of requests
-    shifts_off_req: set # set of requests
+    pref_alpha: float = 0.5
+    pref_min_cons: int = 2
+    pref_max_cons: int = 4
 
     def __post_init__(self):
         self.satisfaction = 0
+        #self.pref_alpha = 0.5
 
     def calc_satisfaction(self, sat_param):
         load = 8
@@ -64,7 +65,7 @@ class Nurse:
     #     return schedule
 
     def __str__(self):
-        return f"Nurse {self.nurse_ID} ({self.max_total_minutes/60} hrs)"
+        return f"Nurse {self.nurse_ID} ({self.max_total_minutes / 60} hrs)"
 
     def __hash__(self):
         return hash(self.nurse_ID)
@@ -97,7 +98,7 @@ class Shift:
     shift_ID: str
     length_in_min: int
     cover_req: dict
-    shifts_cannot_follow_this: list # u must be the numerical shift ID of the shift that cannot follow shift t
+    shifts_cannot_follow_this: list  # u must be the numerical shift ID of the shift that cannot follow shift t
 
     def __str__(self):
         return f"Shift {self.shift_ID} ({self.length_in_min / 60} hrs)"
@@ -109,46 +110,20 @@ class Shift:
         if not isinstance(other, type(self)): return NotImplemented
         return self.shift_ID == other.shift_ID
 
-def import_instance(file, inst_ID):
-    # returns an instance of the instance class
-    with open(file) as f:
-        lines = f.readlines()
-        idx = 0
-        for line in lines:
-            idx = idx + 1
-            if line == 'SECTION_HORIZON\n':
-                horizon_length = lines[idx + 2].strip('\n')
+def calc_cons_penalty(consecutiveness, pref_min, pref_max):
+    if pref_min <= consecutiveness <= pref_max:
+        return 0
+    elif consecutiveness < pref_min:
+        return pow(2, pref_min - consecutiveness)
+    elif consecutiveness > pref_max:
+        return pow(2, consecutiveness - pref_max)
 
-            elif line == 'SECTION_SHIFTS\n':
-
-                shift_ID = lines[idx + 1].split(',')[0]
-                shift_length = lines[idx + 1].split(',')[1]
-
-            elif line == 'SECTION_STAFF\n':
-                nurse_ID = lines[idx + 1].split(',')[0]
-                print(nurse_ID)
-                None
-
-    f.close()
-    return Instance(inst_ID, horizon_length, {}, {})
-
-def get_weight_over(shift, day):
-    df = shift.cover_req
-    weight_over = int(df.loc[(df['Day'] == day-1) & (df['ShiftID'] == shift.shift_ID)].weight_over)
-    return weight_over
-
-def get_weight_under(shift, day):
-    df = shift.cover_req
-    weight_under = int(df.loc[(df['Day'] == day-1) & (df['ShiftID'] == shift.shift_ID)].weight_under)
-    return weight_under
-
-# find_schedule: given instance and model solve NSP
-def find_schedule(instance):
+def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_over =1):
+    S = instance.S
     N = instance.N
     W = instance.W
     time_horizon = instance.horizon
     D = instance.D
-    # requests 3D, to calculate obj_requests
 
     # define MIP
     # demo: have shifts to cover and set of nurses with different weekend preferences (check CAO!)
@@ -159,20 +134,66 @@ def find_schedule(instance):
     # objective: maxmin satisfaction + penalty unassigned shifts
 
     NSP = Model('NSP')
-    NSP.context.cplex_parameters.mip.tolerances.mipgap = 0 # check if gap is always 0 ensured
-    NSP.set_time_limit(1*60) # seconds
+    NSP.context.cplex_parameters.mip.tolerances.mipgap = 0  # check if gap is always 0 ensured
+    NSP.set_time_limit(5 * 60)  # seconds
 
     # decision variables
-    x = NSP.binary_var_dict((i, d, s) for i in range(len(N)) for d in range(1, time_horizon+1) for s in range(len(S)))
-    k = NSP.binary_var_matrix(len(N), range(1, len(W)+1), name = "w")
-    y = NSP.integer_var_matrix(range(1, time_horizon+1), len(S), name = "y")
-    z = NSP.integer_var_matrix(range(1, time_horizon+1), len(S), name="z")
+    x = NSP.binary_var_dict((i, d, s) for i in range(len(N)) for d in range(1, time_horizon + 1) for s in range(len(S)))
+    k = NSP.binary_var_matrix(len(N), range(1, len(W) + 1), name="w")
+    y = NSP.integer_var_matrix(range(1, time_horizon + 1), len(S), name="y")
+    z = NSP.integer_var_matrix(range(1, time_horizon + 1), len(S), name="z")
 
-    # objective function
-    obj_cover = NSP.sum([y[day, shift.numerical_ID]*get_weight_under(shift, day) + z[day, shift.numerical_ID]*get_weight_over(shift, day) for shift in S for day in D])
-    obj_requests = NSP.sum([0*x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S for day in D for nurse in N])
+    # objective function (coverage)
+    obj_cover = NSP.sum([y[day, shift.numerical_ID] * weight_under + z[
+        day, shift.numerical_ID] * weight_over for shift in S for day in D])
+
+    # objective function (satisfaction)
+    df_on = instance.req_on
+    df_off = instance.req_off
+
+    satisfaction_nurses = []
+    obj_worst_off = 0
+
+    for nurse in N:
+        nurse_requests_penalty = 0
+        for shift in S:
+            for day in D:
+                # check if nurse has request for this shift, day
+                if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (df_off['Day'] == day-1)].Weight.any():
+                    # if yes, add to obj_requests if violated
+                    nurse_requests_penalty = nurse_requests_penalty + ((x[nurse.numerical_ID, day, shift.numerical_ID]) * df_off.loc[
+                        (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (df_off['Day'] == day-1)].Weight.item())
+
+                # check if nurse has request for this shift, day
+                if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (df_on['Day'] == day-1)].Weight.any():
+                    # if yes, add to obj_requests if violated
+                    nurse_requests_penalty = nurse_requests_penalty + ((1-x[nurse.numerical_ID, day, shift.numerical_ID]) * df_on.loc[
+                        (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (df_on['Day'] == day-1)].Weight.item())
+
+        # consecutiveness preferences
+        working_on = False
+        count_on = 0
+        consPerNurse = []
+        for day in D:
+            if sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) is not 0.0:
+                count_on += 1
+                working_on = True
+            else:
+                if working_on:
+                    consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+                    count_on = 0
+                    working_on = False
+        if working_on:
+            consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+
+        # convex combination of satisfaction components
+        satisfaction_nurses.append((1 - nurse.pref_alpha) * nurse_requests_penalty + nurse.pref_alpha * NSP.sum(consPerNurse) / len(consPerNurse))
+
+        if obj_worst_off <= ((1 - alpha) * nurse_requests_penalty + alpha * NSP.sum(consPerNurse) / len(consPerNurse)):
+            obj_worst_off = (1 - alpha) * nurse_requests_penalty + alpha * NSP.sum(consPerNurse) / len(consPerNurse)
+
     # TODO: satisfaction score (consecutiveness)
-    NSP.set_objective('min', obj_cover + obj_requests)
+    NSP.set_objective('min', obj_cover + 10* obj_worst_off)
 
     # constraint 1, max one shift per day per nurse
     for day in D:
@@ -183,41 +204,55 @@ def find_schedule(instance):
     for nurse in N:
         for day in range(1, time_horizon):
             for shift in S:
-                for u in shift.shifts_cannot_follow_this: # u must be the numerical shift ID of the shift that cannot follow shift t
-                    x[nurse.numerical_ID, day, shift.numerical_ID] + x[nurse.numerical_ID, day+1, u] <= 1
+                for u in shift.shifts_cannot_follow_this:  # u must be the numerical shift ID of the shift that cannot follow shift t
+                    x[nurse.numerical_ID, day, shift.numerical_ID] + x[nurse.numerical_ID, day + 1, u] <= 1
 
     # constraint 3: personal shift limitations
     for shift in S:
         for nurse in N:
-            NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for day in D]) <= nurse.max_shifts.get(shift.shift_ID))
+            NSP.add_constraint(
+                sum([x[nurse.numerical_ID, day, shift.numerical_ID] for day in D]) <= nurse.max_shifts.get(
+                    shift.shift_ID))
 
     # constraint 4: FTE
     for nurse in N:
-        NSP.add_constraint(nurse.min_total_minutes <= sum([sum([x[nurse.numerical_ID, day, shift.numerical_ID]*shift.length_in_min for shift in S]) for day in D]))
-        NSP.add_constraint(sum([sum([x[nurse.numerical_ID, day, shift.numerical_ID]*shift.length_in_min for shift in S]) for day in D]) <= nurse.max_total_minutes)
+        NSP.add_constraint(nurse.min_total_minutes <= sum(
+            [sum([x[nurse.numerical_ID, day, shift.numerical_ID] * shift.length_in_min for shift in S]) for day in D]))
+        NSP.add_constraint(
+            sum([sum([x[nurse.numerical_ID, day, shift.numerical_ID] * shift.length_in_min for shift in S]) for day in
+                 D]) <= nurse.max_total_minutes)
 
     # constraint 5: max consecutive shifts
     for nurse in N:
-        for day in range(1, time_horizon-nurse.max_consecutive_shifts + 1):
-            NSP.add_constraint(sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day, day+nurse.max_consecutive_shifts+1)]) <= nurse.max_consecutive_shifts)
-
+        for day in range(1, time_horizon - nurse.max_consecutive_shifts + 1):
+            NSP.add_constraint(sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day,
+                                                                                                               day + nurse.max_consecutive_shifts + 1)]) <= nurse.max_consecutive_shifts)
     # constraint 6: min consecutiveness
     for nurse in N:
         for s in range(1, nurse.min_consecutive_shifts):
-            for day in range(1, time_horizon-(s+2)):
-                NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (s-sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day+1, day+s+1)])) + sum([x[nurse.numerical_ID, day+s+1, shift.numerical_ID]for shift in S]) >= 0.00000000000001)
+            for day in range(1, time_horizon - (s + 1)):
+                NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (s - sum(
+                    [x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in
+                     range(day + 1, day + s + 1)])) + sum(
+                    [x[nurse.numerical_ID, day + s + 1, shift.numerical_ID] for shift in S]) >= 0.01)
 
-    # constraint 7: min consecutive days
+    # constraint 7: min consecutiveness days off
     for nurse in N:
         for s in range(1, nurse.min_consecutive_days_off):
-            for day in range(1, time_horizon-(s+2)):
-                NSP.add_constraint(1 - sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day+1, day+s+1)])) + 1 - sum([x[nurse.numerical_ID, day+s+1, shift.numerical_ID]for shift in S]) >= 0.00000000000001)
+            for day in range(1, time_horizon - (s + 1)):
+                NSP.add_constraint(1-sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (sum(
+                    [x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in
+                     range(day + 1, day + s + 1)])) + 1 - sum(
+                    [x[nurse.numerical_ID, day + s + 1, shift.numerical_ID] for shift in S]) >= 0.01)
 
     # # constraint 8: max weekends
     for nurse in N:
         for w in W:
-            NSP.add_constraint(k[nurse.numerical_ID, w] <= sum([x[nurse.numerical_ID, (7*w-1), shift.numerical_ID] for shift in S]) + sum([x[nurse.numerical_ID, 7*w, shift.numerical_ID] for shift in S]))
-            NSP.add_constraint(sum([x[nurse.numerical_ID, (7*w-1), shift.numerical_ID] for shift in S]) + sum([x[nurse.numerical_ID, 7*w, shift.numerical_ID] for shift in S])<= 2*k[nurse.numerical_ID, w])
+            NSP.add_constraint(k[nurse.numerical_ID, w] <= sum(
+                [x[nurse.numerical_ID, (7 * w - 1), shift.numerical_ID] for shift in S]) + sum(
+                [x[nurse.numerical_ID, 7 * w, shift.numerical_ID] for shift in S]))
+            NSP.add_constraint(sum([x[nurse.numerical_ID, (7 * w - 1), shift.numerical_ID] for shift in S]) + sum(
+                [x[nurse.numerical_ID, 7 * w, shift.numerical_ID] for shift in S]) <= 2 * k[nurse.numerical_ID, w])
 
     for nurse in N:
         NSP.add_constraint(sum([k[nurse.numerical_ID, w] for w in W]) <= nurse.max_weekends)
@@ -226,152 +261,257 @@ def find_schedule(instance):
     for nurse in N:
         for day in nurse.days_off:
             for shift in S:
-                NSP.add_constraint(x[nurse.numerical_ID, day+1, shift.numerical_ID] == 0)
+                NSP.add_constraint(x[nurse.numerical_ID, day + 1, shift.numerical_ID] == 0)
 
     # constraint 10: cover requirements
     for day in D:
         for shift in S:
             df = shift.cover_req
-            shift_day_required = int(df.loc[(df['Day'] == day-1) & (df['ShiftID'] == shift.shift_ID)].Requirement)
+            shift_day_required = df.loc[(df['Day'] == day - 1 ) & (df['ShiftID'] == shift.shift_ID)].Requirement.item()
 
-            NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for nurse in N]) - z[day, shift.numerical_ID] + y[day, shift.numerical_ID] == shift_day_required)
+            NSP.add_constraint(
+                sum([x[nurse.numerical_ID, day, shift.numerical_ID] for nurse in N]) - z[day, shift.numerical_ID] + y[
+                    day, shift.numerical_ID] == shift_day_required)
 
     sol = NSP.solve()
-    gap = NSP.solve_details.mip_relative_gap
-    print(f"Optimal objective value z = {NSP.objective_value}")
-    #print(f"Percentage of wishes granted = {NSP.objective_value}")
-    #print(f"Average satisfaction = {NSP.objective_value}")
-    # print coverage
-    # print satisfaction of the worst off nurse
+    print(f"Optimal objective value z = {NSP.objective_value} ({NSP.get_solve_details()}")
 
+    # print satisfaction of the worst off nurse
+    under = sol.get_value(sum([y[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
+    over = sol.get_value(sum([z[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
+    print(f'Shifts underassigned: {under}, \nShifts overassigned: {over}, \nWorst-off nurse: {0} \n')
+    obj_consecutiveness = 0
+    obj_requests = 0
+    df_on = instance.req_on
+    df_off = instance.req_off
+    with open('scores1.txt', 'w') as f:
+        f.write('NurseID, consecutiveness penalty (avg), requests penalty (sum), satisfaction (Pi) \n')
+        requests_all_nurses = []
+        cons_all_nurses = []
+        for nurse in N:
+            f.write(f'{nurse.nurse_ID}, ')
+            nurse_requests_penalty = 0
+            for shift in S:
+                for day in D:
+                    # check if nurse has request for this shift, day
+                    if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+                            df_off['Day'] == day - 1)].Weight.any():
+                        # if yes, add to obj_requests if violated
+                        nurse_requests_penalty = nurse_requests_penalty + (
+                                    (x[nurse.numerical_ID, day, shift.numerical_ID]) * df_off.loc[
+                                (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+                                            df_off['Day'] == day - 1)].Weight.item())
+
+                    # check if nurse has request for this shift, day
+                    if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+                            df_on['Day'] == day - 1)].Weight.any():
+                        # if yes, add to obj_requests if violated
+                        nurse_requests_penalty = nurse_requests_penalty + (
+                                    (1 - x[nurse.numerical_ID, day, shift.numerical_ID]) * df_on.loc[
+                                (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+                                            df_on['Day'] == day - 1)].Weight.item())
+            requests_all_nurses.append(nurse_requests_penalty)
+            f.write(f'{nurse_requests_penalty}, ')
+
+            # consecutiveness preferences
+            working_on = False
+            count_on = 0
+            consPerNurse = []
+
+            for day in D:
+                if sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) is not 0.0:
+                    count_on += 1
+                    working_on = True
+                else:
+                    if working_on:
+                        consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+                        count_on = 0
+                        working_on = False
+
+            if working_on:
+                consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+
+            cons_all_nurses.append(
+                sum(consPerNurse) / len(consPerNurse))  # average penalty of all blocks in nurse i's roster
+
+            # satisfaction_scores[nurse.numerical_ID, 2] = sum(consPerNurse)/len(consPerNurse)
+            f.write(f'{sum(consPerNurse) / len(consPerNurse)}, ')
+
+            # combine requests and consecutiveness in Pi satisfaction score per nurse
+            alpha = nurse.pref_alpha
+            # satisfaction_scores[nurse.numerical_ID, 3] = (1-alpha) * satisfaction_scores[nurse.numerical_ID, 1] + alpha * satisfaction_scores[nurse.numerical_ID, 2]
+            f.write(f'{(1 - alpha) * nurse_requests_penalty + alpha * sum(consPerNurse) / len(consPerNurse)}\n')
+
+    return NSP, sol
+
+def get_solution_statistics(sol, instance):
+    # print satisfaction of the worst off nurse
+    under = sol.get_value(sum([y[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
+    over = sol.get_value(sum([z[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
+    obj_requests = 0
+    # requests: sum of weights of violated requests per nurse, day, shift
+    df_on = instance.req_on
+    df_off = instance.req_off
+    for nurse in instance.N:
+        for shift in instance.S:
+            for day in instance.D:
+                # check if nurse has request for this shift, day
+                if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+                        df_off['Day'] == day - 1)].Weight.any():
+                    # if yes, add to obj_requests if violated
+                    obj_requests = obj_requests + (sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]) * df_off.loc[
+                        (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+                                    df_off['Day'] == day - 1)].Weight.item())
+
+                # check if nurse has request for this shift, day
+                if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+                        df_on['Day'] == day - 1)].Weight.any():
+                    # if yes, add to obj_requests if violated
+                    obj_requests = obj_requests + ((1 - sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) * df_on.loc[
+                        (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+                                    df_on['Day'] == day - 1)].Weight.item())
+
+    return under, over, obj_requests
+def print_schedule(sol, instance):
+    # TODO: fix size of pd dataframe to export schedule (IndexError)
+    S = instance.S
+    N = instance.N
+    W = instance.W
+    time_horizon = instance.horizon
+    D = instance.D
     # visualize schedule, who works when
-    schedule = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
-    schedule.set_index('nurse', inplace= True)
+    # schedule = pd.read_csv(r'../data/schedule_to_fill.csv')
+    schedule = pd.DataFrame()
+    # schedule.set_index('nurse', inplace=True)
     for nurse in N:
         for shift in S:
             for day in D:
                 if sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]) == 1.0:
-                    schedule.iloc[nurse.numerical_ID, day-1] = shift.shift_ID
+                    schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
                 else:
-                    schedule.iloc[nurse.numerical_ID, day-1] = '_'
+                    schedule.iloc[nurse.numerical_ID, day - 1] = '_'
 
-    print(schedule) # to app st.dataframe(schedule)
-    return NSP, sol
+    # add over- and undercoverage rows
+    under = 0
+    over = 0
+    for day in D:
+        schedule.iloc[8, day - 1] = ' '
+        schedule.iloc[9, day - 1] = int(sol.get_value(y[day, 0]))
+        under = under + int(sol.get_value(y[day, 0]))
+        schedule.iloc[10, day - 1] = int(sol.get_value(z[day, 0]))
+        over = over + int(sol.get_value(z[day, 0]))
 
-def shift_satisfaction(shift, nurse): # TODO maybe make this nested in sequence to get nr prior cons shifts and shift prior and after...
-    # function to combine workload, wishes, recovery per shift (now assumed to be linear)
-    workload = 0 # shift_type*nurse.pref_type #TODO fix this
-    return shift_sat
+    # add requests % column
+    obj_requests = 0
+    obj_requests_total = 0
+    # requests: sum of weights of violated requests per nurse, day, shift
+    df_on = instance.req_on
+    df_off = instance.req_off
+    for nurse in N:
+        schedule.iloc[nurse.numerical_ID, 14] = ' '
+        for shift in S:
+            for day in D:
+                # check if nurse has request for this shift, day
+                if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+                        df_off['Day'] == day - 1)].Weight.any():
+                    # if yes, add to obj_requests if violated
+                    obj_requests = obj_requests + (
+                                int(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) * df_off.loc[
+                            (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+                                        df_off['Day'] == day - 1)].Weight.item())
 
-def sequence_satisfaction(sequence = [D, D, D], nurse):
-    # function to combine diversity, weekend, recovery, consecutiveness (now assumed to be linear)
-    diversity = len(set(sequence))
-    consecutiveness = len(sequence)/4
-    weekend = 0
-    recovery = recovery_seq(nurse, sequence[0], sequence[-1])
+                # check if nurse has request for this shift, day
+                if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+                        df_on['Day'] == day - 1)].Weight.any():
+                    # if yes, add to obj_requests if violated
+                    obj_requests = obj_requests + (
+                                (1 - int(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]))) * df_on.loc[
+                            (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+                                        df_on['Day'] == day - 1)].Weight.item())
+        schedule.iloc[nurse.numerical_ID, 15] = obj_requests
+        obj_requests_total = obj_requests_total + obj_requests
+        obj_requests = 0
 
-    sequence_sat = diversity*nurse.pref_diversity + consecutiveness*nurse.pref_consecutiveness + weekend * nurse.pref_weekend + recovery * nurse.pref_recovery
-    return sequence_sat
-def satisfaction(schedule_nurse=[_, _, D, D, D, D, _], nurse='A'):
-    for idx in range(len(schedule_nurse)):
-        #recovery_shift(schedule_nurse[idx-1], schedule_nurse[idx+1])
-        nr_prior = len(schedule_nurse[:idx].rsplit('_', 1)# not _ before this index
-        return (nr_prior)
-        # workload_shift(schedule_nurse[idx], nr_prior, with_senior=False) # TODO with senior requires whole schedule, all nurses
-        # wish_shift = schedule_nurse[idx] in nurse.wishes_on # TODO check right wish
-        # shift_satisfaction = recovery_shift + workload_shift + wish_shift
-satisfaction(schedule_nurse=[_, _, D, D, D, D, _], nurse='A')
+    schedule.to_csv('solution_schedule_instance{}.csv'.format(instance.instance_ID))
+    print(f'{beta}, {under}, {over}, {obj_requests_total}')
+    # write to result file, append: beta, under, over, requests
+    with open('results.txt', 'a') as f:
+        f.write(f'{beta}, {under}, {over}, {obj_requests_total}\n')
 
-    return satisfaction_score
-def evaluate_schedule(schedule):
-    schedule = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
-    schedule.set_index('nurse', inplace=True)
-    satisfaction_all = [satisfaction(row, nurse) for row in schedule]
-    return max(min(satisfaction_all))
+    print(schedule)  # to app st.dataframe(schedule)
+    verticalPenalty = under + over
+    horizontalPenalty = obj_requests_total
+    return verticalPenalty, horizontalPenalty
 
+def string_to_numerical_shift(shiftID, S):
+    # look for shift in set S with shiftID string
+    for shift in S:
+        if shift.shift_ID == shiftID:
+            return shift.numerical_ID
 
+def read_instance(inst_id):
+    cover = pd.read_csv(r'instances1_24\instance{}\shift_cover_req.csv'.format(inst_id))
+    req_on = pd.read_csv(r'instances1_24\instance{}\requests_on.csv'.format(inst_id))
+    req_off = pd.read_csv(r'instances1_24\instance{}\requests_off.csv'.format(inst_id))
+    staff = pd.read_csv(r'instances1_24\instance{}\staff.csv'.format(inst_id))
+    shifts = pd.read_csv(r'instances1_24\instance{}\shifts.csv'.format(inst_id))
+    daysOff = pd.read_csv(r'instances1_24\instance{}\daysOff.csv'.format(inst_id))
 
+    time_horizons = [14, 14, 14, 28, 28, 28, 28, 28, 28, 28]
 
-# Instance 1 (ignoring all request in data and obj fn right now)
-cover = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
-cover2 = pd.read_csv(r'D:\EvaR\Documents\GitHub\thesis_MSc\data\shift_cover_req.csv')
-nurse0 = Nurse(0, 'A', [0], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse1 = Nurse(1, 'B', [5], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse2 = Nurse(2, 'C', [8], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse3 = Nurse(3, 'D', [2], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse4 = Nurse(4, 'E', [9], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse5 = Nurse(5, 'F', [5], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse6 = Nurse(6, 'G', [1], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
-nurse7 = Nurse(7, 'H', [7], {'D':14}, 4320, 3360, 5, 2, 2, 1, {}, {})
+    N = set()
+    ID = 0
+    for index, row in staff.iterrows():
+        # maxshifts split per | first, then by = to get key value pairs
+        max_shifts_dict = {}
+        list_of_all_max_shifts = row['MaxShifts'].split('|')
 
-S = {Shift(0, 'D', 480, cover, [])}
-N = {nurse0, nurse1, nurse2, nurse3, nurse4, nurse5, nurse6, nurse7}
-print(Request(1, 'A', 'D', 2, 2))
-inst_1 = Instance(1, 14, S, N)
+        for max_shift in list_of_all_max_shifts:
+            list_max_shifts = max_shift.split('=')
 
-# Solve NSP for instance 1
-find_schedule(inst_1)
+            # add to dict
+            max_shifts_dict[list_max_shifts[0]] = int(list_max_shifts[1])
+            #max_shifts_dict = {list_max_shifts[0]: int(list_max_shifts[1])}
 
-# change weekend pref (like more weekends cause extra pay)
-nurse0.max_weekends = 4
-find_schedule(inst_1)
+        N.add(Nurse(ID, row['ID'], [], max_shifts_dict, row['MaxTotalMinutes'],
+                    row['MinTotalMinutes'], row['MaxConsecutiveShifts'], row['MinConsecutiveShifts'],
+                    row['MinConsecutiveDaysOff'], row['MaxWeekends']))
+        ID = ID + 1
 
-# change consecutiveness preferences
-nurse1.max_consecutive_shifts = 1 # more rest
-find_schedule(inst_1)
+    for nurse in N:
+        nurseID = nurse.nurse_ID
+        daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
+        #daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
+        nurse.days_off = [daysOffNurse1]
 
-nurse2.min_consecutive_shifts = 3 # more blocks TODO: look for bug here !
-find_schedule(inst_1)
+    S = set()
+    ID = 0
+    for index, row in shifts.iterrows():
+        S.add(Shift(ID, row['ShiftID'], row['Length in mins'], cover, []))
+        ID = ID + 1
 
-# tests & TBC
-# adding shift Shift(1, 'E', 480, cover2, [0]) breaks down system.. TBC
+    for index, row in shifts.iterrows():
+        if index == 0:
+            continue
+        if (len(row['Shifts which cannot follow this shift | separated'])) > 1:
+            list_off_string_IDS = row['Shifts which cannot follow this shift | separated'].split('|')
+        else:
+            list_off_string_IDS = [row['Shifts which cannot follow this shift | separated']]
 
+        list_of_impossible_shifts_to_follow = [string_to_numerical_shift(shiftID, S) for shiftID in list_off_string_IDS]
+        for shift in S:
+            if shift.shift_ID == row['ShiftID']:
+                shift.shifts_cannot_follow_this = list_of_impossible_shifts_to_follow
 
-# file = r"Code\NSP_benchmark\instances1_24\Instance1.txt"
-# #file = r"Code/NSP_benchmark/instances1_24/Instance1.txt"
-# with open(file) as f:
-#     lines = f.readlines()
-#     print(lines)
-#     idx = 0
-#     for line in lines:
-#         idx = idx + 1
-#         if line == 'SECTION_HORIZON\n':
-#             horizon_length = lines[idx+2]
-#             print(f'horizon length {horizon_length}')
-#         elif line == 'SECTION_SHIFTS\n':
-#             print(idx)
-#             shift_ID = lines[idx+1].split(',')[0]
-#             shift_length = lines[idx+1].split(',')[1]
-#             print(shift_ID)
-#             print(shift_length)
-#
-#         elif line == 'SECTION_STAFF\n':
-#             nurse_ID =  lines[idx+1].split(',')[0]
-#             print(nurse_ID)
-#             None
+        assert len(S) != 0, "Empty set of shifts"
+        assert len(N) != 0, "Empty set of nurses"
 
-#
-# # def simulate_trades(Instance.S, Instance.N):
-# #     # selling, buying, shift_ID, day
-# #     return trades
-#
-#
-# # update_preferences: given changes and nurse objects, update their preference parameters/profile
-# def nurse_schedule_satisfaction(nurse, schedule):
-#     # from schedule get consecutiveness, workload etc.
-#
-#     # flexibility, worklaod
-#
-#     satisfaction = None
-#     return satisfaction
-#
-# def dept_schedule_satisfaction(dept_satisfactions):
-#     return (min(dept_satisfactions)) # objective is maximization of min
-#
-# # def update_preferences(changes or requests):
-# #     for change in changes:
-# #
-# #     # create table with changes by nurse
-# #
-# #     for nurse in nurses_changed:
-# #         train_satisfaction(nurse, changes[nurse])
+    return Instance(inst_id, time_horizons[inst_id-1], S, N, req_on, req_off)
+
+if False:
+    req_on = pd.read_csv(r'../data/requests_on_all_1_Weight.csv')
+    req_off = pd.read_csv(r'../data/requests_off_all_1_weight.csv')
+
+    open("results.txt", "w").close()
+    for beta in range(11):
+        find_schedule(inst_1, beta=beta / 10, weight_under =1, weight_over=1)
