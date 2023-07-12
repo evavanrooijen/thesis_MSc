@@ -1,0 +1,9 @@
+Instance ID, under, over, validated requests, total objective  
+Instance 1, 6, 1, 6, 607  
+Instance 2, 8, 0, 28, 828  
+Instance 3, 10, 0, 1, 1001  
+Instance 4, 17, 1, 15, 1716  
+Instance 5, 10, 2, 46, 1048  
+Instance 6, 19, 4, 46, 1950  
+Instance 7, 10, 0, 55, 1055  
+Instance 8, 25, 2, 101, 2603  
