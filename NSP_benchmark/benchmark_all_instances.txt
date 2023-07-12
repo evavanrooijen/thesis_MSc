@@ -5,3 +5,4 @@ Instance 3, 10, 0, 1, 1001, 9.43 sec
 Instance 4, 17, 1, 15, 1716, 31.34 sec  
 Instance 5, 10, 2, 46, 1048, 48.61 sec  
 Instance 6, 19, 4, 46, 1950, 89.76 sec  
+Instance 7, 10, 0, 56, 1056, 289.21 sec  
