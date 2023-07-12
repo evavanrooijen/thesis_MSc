@@ -30,7 +30,6 @@ class Instance:
             return NotImplemented
         return self.instance_ID == other.instance_ID
 
-# nurse has personal characteristics and preference parameters
 @dataclass
 class Nurse:
     numerical_ID: int
@@ -43,26 +42,6 @@ class Nurse:
     min_consecutive_shifts: int
     min_consecutive_days_off: int
     max_weekends: int
-    pref_alpha: float = 0.5
-    pref_min_cons: int = 2
-    pref_max_cons: int = 4
-
-    def __post_init__(self):
-        self.satisfaction = 0
-        #self.pref_alpha = 0.5
-
-    def calc_satisfaction(self, sat_param):
-        load = 8
-        rest = 2
-        self.satisfaction = load + rest
-        return load
-
-    # def show_schedule(self, solution):
-    #     # for given solution (3D), show assigned shifts to nurse (2D) in df with
-    #     for v in NSP.iter_binary_vars():
-    #         print(v) #outcome.append(int(v.solution_value))
-    #
-    #     return schedule
 
     def __str__(self):
         return f"Nurse {self.nurse_ID} ({self.max_total_minutes / 60} hrs)"
@@ -110,28 +89,12 @@ class Shift:
         if not isinstance(other, type(self)): return NotImplemented
         return self.shift_ID == other.shift_ID
 
-def calc_cons_penalty(consecutiveness, pref_min, pref_max):
-    if pref_min <= consecutiveness <= pref_max:
-        return 0
-    elif consecutiveness < pref_min:
-        return pow(2, pref_min - consecutiveness)
-    elif consecutiveness > pref_max:
-        return pow(2, consecutiveness - pref_max)
-
-def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_over =1):
+def find_schedule(instance, weight_under = 100, weight_over = 1):
     S = instance.S
     N = instance.N
     W = instance.W
     time_horizon = instance.horizon
     D = instance.D
-
-    # define MIP
-    # demo: have shifts to cover and set of nurses with different weekend preferences (check CAO!)
-    # by changing their weekend tolerance, show differences in schedule
-    # some like weekends: pay others do not: personal life
-
-    # satisfaction is dan assigned_weekends/preference_weekends en maxmin
-    # objective: maxmin satisfaction + penalty unassigned shifts
 
     NSP = Model('NSP')
     NSP.context.cplex_parameters.mip.tolerances.mipgap = 0  # check if gap is always 0 ensured
@@ -150,9 +113,7 @@ def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_ov
     # objective function (satisfaction)
     df_on = instance.req_on
     df_off = instance.req_off
-
-    satisfaction_nurses = []
-    obj_worst_off = 0
+    obj_requests = 0
 
     for nurse in N:
         nurse_requests_penalty = 0
@@ -169,31 +130,9 @@ def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_ov
                     # if yes, add to obj_requests if violated
                     nurse_requests_penalty = nurse_requests_penalty + ((1-x[nurse.numerical_ID, day, shift.numerical_ID]) * df_on.loc[
                         (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (df_on['Day'] == day-1)].Weight.item())
+        obj_requests = obj_requests + nurse_requests_penalty
 
-        # consecutiveness preferences
-        working_on = False
-        count_on = 0
-        consPerNurse = []
-        for day in D:
-            if sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) is not 0.0:
-                count_on += 1
-                working_on = True
-            else:
-                if working_on:
-                    consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-                    count_on = 0
-                    working_on = False
-        if working_on:
-            consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-
-        # convex combination of satisfaction components
-        satisfaction_nurses.append((1 - nurse.pref_alpha) * nurse_requests_penalty + nurse.pref_alpha * NSP.sum(consPerNurse) / len(consPerNurse))
-
-        if obj_worst_off <= ((1 - alpha) * nurse_requests_penalty + alpha * NSP.sum(consPerNurse) / len(consPerNurse)):
-            obj_worst_off = (1 - alpha) * nurse_requests_penalty + alpha * NSP.sum(consPerNurse) / len(consPerNurse)
-
-    # TODO: satisfaction score (consecutiveness)
-    NSP.set_objective('min', obj_cover + 10* obj_worst_off)
+    NSP.set_objective('min', obj_cover + obj_requests)
 
     # constraint 1, max one shift per day per nurse
     for day in D:
@@ -313,34 +252,34 @@ def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_ov
             requests_all_nurses.append(nurse_requests_penalty)
             f.write(f'{nurse_requests_penalty}, ')
 
-            # consecutiveness preferences
-            working_on = False
-            count_on = 0
-            consPerNurse = []
-
-            for day in D:
-                if sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) is not 0.0:
-                    count_on += 1
-                    working_on = True
-                else:
-                    if working_on:
-                        consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-                        count_on = 0
-                        working_on = False
-
-            if working_on:
-                consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-
-            cons_all_nurses.append(
-                sum(consPerNurse) / len(consPerNurse))  # average penalty of all blocks in nurse i's roster
-
-            # satisfaction_scores[nurse.numerical_ID, 2] = sum(consPerNurse)/len(consPerNurse)
-            f.write(f'{sum(consPerNurse) / len(consPerNurse)}, ')
-
-            # combine requests and consecutiveness in Pi satisfaction score per nurse
-            alpha = nurse.pref_alpha
-            # satisfaction_scores[nurse.numerical_ID, 3] = (1-alpha) * satisfaction_scores[nurse.numerical_ID, 1] + alpha * satisfaction_scores[nurse.numerical_ID, 2]
-            f.write(f'{(1 - alpha) * nurse_requests_penalty + alpha * sum(consPerNurse) / len(consPerNurse)}\n')
+            # # consecutiveness preferences
+            # working_on = False
+            # count_on = 0
+            # consPerNurse = []
+            #
+            # for day in D:
+            #     if sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) is not 0.0:
+            #         count_on += 1
+            #         working_on = True
+            #     else:
+            #         if working_on:
+            #             consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+            #             count_on = 0
+            #             working_on = False
+            #
+            # if working_on:
+            #     consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+            #
+            # cons_all_nurses.append(
+            #     sum(consPerNurse) / len(consPerNurse))  # average penalty of all blocks in nurse i's roster
+            #
+            # # satisfaction_scores[nurse.numerical_ID, 2] = sum(consPerNurse)/len(consPerNurse)
+            # f.write(f'{sum(consPerNurse) / len(consPerNurse)}, ')
+            #
+            # # combine requests and consecutiveness in Pi satisfaction score per nurse
+            # alpha = nurse.pref_alpha
+            # # satisfaction_scores[nurse.numerical_ID, 3] = (1-alpha) * satisfaction_scores[nurse.numerical_ID, 1] + alpha * satisfaction_scores[nurse.numerical_ID, 2]
+            # f.write(f'{(1 - alpha) * nurse_requests_penalty + alpha * sum(consPerNurse) / len(consPerNurse)}\n')
 
     return NSP, sol
 
@@ -480,9 +419,13 @@ def read_instance(inst_id):
 
     for nurse in N:
         nurseID = nurse.nurse_ID
-        daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
-        #daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
-        nurse.days_off = [daysOffNurse1]
+        if inst_id>3:
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes1 (start at zero)'].item()
+            daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1, daysOffNurse2]
+        else:
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1]
 
     S = set()
     ID = 0
