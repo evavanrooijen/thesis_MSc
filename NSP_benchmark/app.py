@@ -15,7 +15,7 @@ schedule = find_schedule(instance) # returns NSP and sol
 
 st.write(f'Best we can do for instance {inst} is undercoverage of {instance.best_undercover} and overcoverage of {instance.best_overcover}')
 st.write(f'Worst-off nurse has penalty off {instance.worst_off_sat}')
-show_schedule = st.checkbox('Show schedule')
+show_schedule = st.checkbox('Show schedule ')
 
 if show_schedule:
     st.dataframe(schedule)

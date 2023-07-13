@@ -53,10 +53,10 @@ class Nurse:
     consecutivenessPenalty: float = 0
     satisfaction: float = 0
 
-    def __post_init__(self):
-        # nr. of prefered days must be integer
-        self.pref_min_cons = round(np.random.normal(3, 1, 1)[0])
-        self.pref_max_cons = round(np.random.normal(5, 2, 1)[0]) # TODO: CHECK THESE WITH SURVEY
+    # def __post_init__(self):
+    #     # nr. of prefered days must be integer
+    #     self.pref_min_cons = round(np.random.normal(3, 1, 1)[0])
+    #     self.pref_max_cons = round(np.random.normal(5, 2, 1)[0]) # TODO: CHECK THESE WITH SURVEY
 
     def __str__(self):
         return f"Nurse {self.nurse_ID} ({self.max_total_minutes / 60} hrs)"
@@ -112,7 +112,7 @@ def calc_cons_penalty(consecutiveness, pref_min, pref_max):
     elif consecutiveness > pref_max:
         return pow(2, 2*(consecutiveness - pref_max))
 
-def find_schedule(instance, weight_under = 100, weight_over =1, vis_schedule = True):
+def find_schedule(instance, weight_under = 100, weight_over = 10, vis_schedule = True):
     S = instance.S
     N = instance.N
     W = instance.W
@@ -138,54 +138,56 @@ def find_schedule(instance, weight_under = 100, weight_over =1, vis_schedule = T
     df_on = instance.req_on
     df_off = instance.req_off
     unscaled_satisfaction_scores = []
+    #
+    # for nurse in N:
+    #     nurse_requests_violations_penalty = 0
+    #     for shift in S:
+    #         for day in D:
+    #             # check if nurse has request for this shift, day
+    #             if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+    #                     df_off['Day'] == day - 1)].Weight.any():
+    #                 # if yes, add to obj_requests if violated
+    #                 nurse_requests_violations_penalty = nurse_requests_violations_penalty + (
+    #                         x[nurse.numerical_ID, day, shift.numerical_ID] * df_off.loc[
+    #                     (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
+    #                             df_off['Day'] == day - 1)].Weight.item())
+    #
+    #             # check if nurse has request for this shift, day
+    #             if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+    #                     df_on['Day'] == day - 1)].Weight.any():
+    #                 # if yes, add to obj_requests if violated
+    #                 nurse_requests_violations_penalty = nurse_requests_violations_penalty + (
+    #                         (1 - x[nurse.numerical_ID, day, shift.numerical_ID]) * df_on.loc[
+    #                     (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
+    #                             df_on['Day'] == day - 1)].Weight.item())
+    #
+    #     # consecutiveness preferences
+    #     working_on = False
+    #     count_on = 0
+    #     consPerNurse = []
+    #
+    #     for day in D:
+    #         if NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) >= 1:
+    #             count_on += 1
+    #             working_on = True
+    #         else:
+    #             if working_on:
+    #                 consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+    #                 count_on = 0
+    #                 working_on = False
+    #
+    #     if working_on:
+    #         consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
+    #
+    #     # combine requests and consecutiveness in Pi satisfaction score per nurse
+    #     consecutivenessP = sum(consPerNurse)/len(consPerNurse)
+    #     unscaled_satisfaction_scores.append((1 - nurse.pref_alpha) * nurse_requests_violations_penalty + nurse.pref_alpha * consecutivenessP)
+    #     obj_worst_off = max(unscaled_satisfaction_scores)
+    #     # for value in unscaled_satisfaction_scores:
+    #     #     if worst_off < nurse.satisfaction:
+    #     #         worst_off = nurse.satisfaction
 
-    for nurse in N:
-        nurse_requests_violations_penalty = 0
-        for shift in S:
-            for day in D:
-                # check if nurse has request for this shift, day
-                if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
-                        df_off['Day'] == day - 1)].Weight.any():
-                    # if yes, add to obj_requests if violated
-                    nurse_requests_violations_penalty = nurse_requests_violations_penalty + (
-                            x[nurse.numerical_ID, day, shift.numerical_ID] * df_off.loc[
-                        (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
-                                df_off['Day'] == day - 1)].Weight.item())
-
-                # check if nurse has request for this shift, day
-                if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
-                        df_on['Day'] == day - 1)].Weight.any():
-                    # if yes, add to obj_requests if violated
-                    nurse_requests_violations_penalty = nurse_requests_violations_penalty + (
-                            (1 - x[nurse.numerical_ID, day, shift.numerical_ID]) * df_on.loc[
-                        (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
-                                df_on['Day'] == day - 1)].Weight.item())
-
-        # consecutiveness preferences
-        working_on = False
-        count_on = 0
-        consPerNurse = []
-
-        for day in D:
-            if NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) >= 1:
-                count_on += 1
-                working_on = True
-            else:
-                if working_on:
-                    consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-                    count_on = 0
-                    working_on = False
-
-        if working_on:
-            consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-
-        # combine requests and consecutiveness in Pi satisfaction score per nurse
-        consecutivenessP = sum(consPerNurse)/len(consPerNurse)
-        unscaled_satisfaction_scores.append((1 - nurse.pref_alpha) * nurse_requests_violations_penalty + nurse.pref_alpha * consecutivenessP)
-        obj_worst_off = max(unscaled_satisfaction_scores)
-        # for value in unscaled_satisfaction_scores:
-        #     if worst_off < nurse.satisfaction:
-        #         worst_off = nurse.satisfaction
+    obj_worst_off = 0
 
     NSP.set_objective('min', obj_cover + obj_worst_off)
 
@@ -323,11 +325,13 @@ def find_schedule(instance, weight_under = 100, weight_over =1, vis_schedule = T
         if max_cons_penalty_of_all_nurses < max(consPerNurse):
             max_cons_penalty_of_all_nurses = max(consPerNurse)
 
+        print(f'nurse {nurse.nurse_ID} { consPerNurse} with consPenalty {sum(consPerNurse) / len(consPerNurse)}')
         nurse.consecutivenessPenalty = sum(consPerNurse) / len(consPerNurse)
 
     for nurse in N:
         # rescale consecutiveness penalty on [0, 1]
         nurse.consecutivenessPenalty = round(nurse.consecutivenessPenalty / max_cons_penalty_of_all_nurses, 2)
+        print(nurse.consecutivenessPenalty)
 
         # combine requests and consecutiveness in Pi satisfaction score per nurse
         nurse.satisfaction = (1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
@@ -367,6 +371,7 @@ def find_schedule(instance, weight_under = 100, weight_over =1, vis_schedule = T
         #     schedule.iloc[nurse.numerical_ID, 17] = nurse.satisfaction
         #
         schedule.to_csv(f'Schedule{instance.instance_ID}.csv')
+        print(schedule)
         return schedule
 
     return NSP, sol
