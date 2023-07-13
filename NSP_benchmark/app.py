@@ -3,9 +3,14 @@ import streamlit as st
 import pandas as pd
 
 st.title('Hello World! [nurse view]')
-inst = st.sidebar.slider('Select an instance', 1, 2)
-st.sidebar.write('Select a nurse')
+st.sidebar.title('Options')
+st.sidebar.header('Instance')
+st.sidebar.write('Select an instance')
+inst = st.sidebar.slider('Instance', 1, 2)
 
+
+st.sidebar.header('Preferences')
+st.sidebar.write('Select a nurse')
 
 instance = read_instance(inst)
 list_of_nurse_IDs = []
@@ -13,7 +18,7 @@ for nurse in instance.N:
     list_of_nurse_IDs.append(nurse.nurse_ID)
 
 nurse_ID = st.sidebar.selectbox('Nurse', sorted(list_of_nurse_IDs))
-st.sidebar.write('Set consectiveness preferences')
+st.sidebar.subheader('Set consectiveness preferences')
 
 if nurse.nurse_ID == nurse_ID:
     this_nurse = nurse
@@ -27,6 +32,12 @@ for nurse in instance.N:
         nurse.pref_min_cons = st.sidebar.number_input('Min consective shifts', min_value=1, max_value=7, value= 2 , step=1,
                                                       key='min{}'.format(nurse.numerical_ID))
         nurse.pref_max_cons = st.sidebar.number_input('Max consective shifts', min_value=1, max_value=7, value = 4, step=1, key='max{}'.format(nurse.numerical_ID))
+
+st.sidebar.subheader('Set weights')
+st.sidebar.write('alpha is the weight assigned to consecutiveness compared to incidental requests')
+for nurse in instance.N:
+    if nurse.nurse_ID == nurse_ID:
+        nurse.pref_alpha = st.sidebar.slider('alpha*', 0.0, 1.0, 0.5, step = 0.1)
 
 
 schedule = find_schedule(instance) # returns NSP and sol
