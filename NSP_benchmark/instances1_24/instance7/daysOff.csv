@@ -1,0 +1,21 @@
+EmployeeID,DayIndexes1 (start at zero),DayIndexes2 (start at zero)
+A,15,16
+B,11,12
+C,1,6
+D,21,22
+E,13,14
+F,9,10
+G,26,27
+H,14,23
+I,11,12
+J,7,15
+K,9,25
+L,18,19
+M,3,4
+N,18,19
+O,7,18
+P,7,18
+Q,19,20
+R,7,24
+S,3,12
+T,25,26
