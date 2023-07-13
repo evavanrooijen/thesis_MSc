@@ -89,7 +89,7 @@ class Shift:
         if not isinstance(other, type(self)): return NotImplemented
         return self.shift_ID == other.shift_ID
 
-def find_schedule(instance, weight_under = 100, weight_over = 1):
+def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over = 1, vis_schedule = True):
     start = time.time()
     S = instance.S
     N = instance.N
@@ -99,7 +99,7 @@ def find_schedule(instance, weight_under = 100, weight_over = 1):
 
     NSP = Model('NSP')
     NSP.context.cplex_parameters.mip.tolerances.mipgap = 0  # check if gap is always 0 ensured
-    NSP.set_time_limit(5 * 60)  # seconds
+    NSP.set_time_limit(time_limit)  # seconds
 
     # decision variables
     x = NSP.binary_var_dict((i, d, s) for i in range(len(N)) for d in range(1, time_horizon + 1) for s in range(len(S)))
@@ -217,8 +217,6 @@ def find_schedule(instance, weight_under = 100, weight_over = 1):
     runtime = end - start
 
     print(f"Optimal objective value z = {NSP.objective_value} took {round(runtime, 2)} sec. ({NSP.get_solve_details()}")
-
-
     # print satisfaction of the worst off nurse
     under = sol.get_value(sum([y[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
     over = sol.get_value(sum([z[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
@@ -244,7 +242,7 @@ def find_schedule(instance, weight_under = 100, weight_over = 1):
     print(f'Shifts underassigned: {under}, \nShifts overassigned: {over}, \nTotal request penalty: {obj_requests} \n')
 
     # visualize schedule, who works when
-    if False:
+    if vis_schedule:
         schedule = pd.read_csv(f'../NSP_benchmark/instances1_24/instance{instance.instance_ID}/schedule_to_fill.csv', delimiter=';')
         schedule.set_index('nurse', inplace=True)
 
@@ -256,8 +254,8 @@ def find_schedule(instance, weight_under = 100, weight_over = 1):
                     if round(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) == 1:
                         schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
 
-
-        schedule.to_csv(f'Schedule{instance.instance_ID}.csv')
+        schedule.to_csv(r'instances1_24\instance{}\solution_schedule{}.csv'.format(instance.instance_ID, instance.instance_ID))
+        print(schedule)
 
     with open('benchmark_all_instances.txt', 'a') as f:
         f.write(f'Instance {instance.instance_ID}, {round(under)}, {round(over)}, {round(obj_requests)}, {round(under*100+over+obj_requests)}, {round(runtime, 2)} sec  \n')
