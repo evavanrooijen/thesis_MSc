@@ -1,9 +1,0 @@
-ID,MaxShifts,MaxTotalMinutes,MinTotalMinutes,MaxConsecutiveShifts,MinConsecutiveShifts,MinConsecutiveDaysOff,MaxWeekends
-A,D=14,4320,3360,5,2,2,1
-B,D=14,4320,3360,5,2,2,1
-C,D=14,4320,3360,5,2,2,1
-D,D=14,4320,3360,5,2,2,1
-E,D=14,4320,3360,5,2,2,1
-F,D=14,4320,3360,5,2,2,1
-G,D=14,4320,3360,5,2,2,1
-H,D=14,4320,3360,5,2,2,1

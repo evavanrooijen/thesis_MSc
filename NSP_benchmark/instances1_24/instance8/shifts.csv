@@ -1,5 +1,0 @@
-ShiftID,Length in mins,Shifts which cannot follow this shift | separated
-E,480,
-D,480,E
-L,480,E|D
-N,480,E|D|L
