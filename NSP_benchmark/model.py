@@ -325,22 +325,20 @@ def find_schedule(instance, weight_under = 100, weight_over = 10, vis_schedule =
         if max_cons_penalty_of_all_nurses < max(consPerNurse):
             max_cons_penalty_of_all_nurses = max(consPerNurse)
 
-        print(f'nurse {nurse.nurse_ID} { consPerNurse} with consPenalty {sum(consPerNurse) / len(consPerNurse)}')
         nurse.consecutivenessPenalty = sum(consPerNurse) / len(consPerNurse)
 
     for nurse in N:
         # rescale consecutiveness penalty on [0, 1]
-        nurse.consecutivenessPenalty = round(nurse.consecutivenessPenalty / max_cons_penalty_of_all_nurses, 2)
-        print(nurse.consecutivenessPenalty)
+        nurse.consecutivenessPenalty = nurse.consecutivenessPenalty / max_cons_penalty_of_all_nurses
 
         # combine requests and consecutiveness in Pi satisfaction score per nurse
         nurse.satisfaction = (1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
 
-    with open(f'satisfaction_scores{instance.instance_ID}.csv', 'w') as f:
+    with open(f'C:/Users/EvavR/OneDrive/Documenten/GitHub/thesis_MSc/NSP_benchmark/instances1_24/instance{instance.instance_ID}/satisfaction_scores{instance.instance_ID}.csv', 'w') as f:
         f.write('NurseID, requestsPen, consecutivenessPen, satisfaction (Pi) \n')
         worst_off = 0
         for nurse in N:
-            f.write(f'{nurse.nurse_ID}, {nurse.requestPenalty}, {nurse.consecutivenessPenalty}, {nurse.satisfaction} \n')
+            f.write(f'{nurse.nurse_ID}, {round(nurse.requestPenalty, 2)}, {round(nurse.consecutivenessPenalty, 2)}, {round(nurse.satisfaction, 2)} \n')
             if worst_off < nurse.satisfaction:
                 worst_off = nurse.satisfaction
         instance.worst_off_sat = worst_off
