@@ -353,7 +353,7 @@ def find_schedule(instance, beta = 0.5, alpha=0.5, weight_under = 100, weight_ov
 
     # visualize schedule, who works when, coverage and satisfaction indicator values
     if True:
-        schedule = pd.read_csv(f'../NSP_benchmark/instances1_24/instance{instance.instance_ID}/schedule_to_fill.csv',
+        schedule = pd.read_csv(f'../NSP_benchmark/instances1_24/instance{instance.instance_ID}/schedule_to_fill_incl_scores.csv',
                                delimiter=',')
         schedule.set_index('nurse', inplace=True)
 
