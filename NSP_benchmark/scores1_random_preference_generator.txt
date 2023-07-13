@@ -1,0 +1,10 @@
+NurseID, consecutiveness penalty (avg), requests penalty (sum), satisfaction (Pi) 
+C, 0.29, 0.0, 0.145 
+H, 0.18, 0.04, 0.11 
+D, 0.0, 0.51, 0.255 
+B, 0.0, 0.02, 0.01 
+G, 0, 0.12, 0.06 
+F, 0.43, 0.01, 0.22 
+E, 0, 0.03, 0.015 
+A, 0.0, 0.01, 0.005 
+Worst-off satisfaction score: 0.255
