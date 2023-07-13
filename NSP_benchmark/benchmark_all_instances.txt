@@ -1,8 +1,7 @@
 Instance ID, under, over, validated requests, total objective  
-Instance 1, 6, 1, 6, 607, 0.46 sec  
-Instance 2, 8, 0, 28, 828, 5.52 sec  
-Instance 3, 10, 0, 1, 1001, 9.43 sec  
-Instance 4, 17, 1, 15, 1716, 31.34 sec  
-Instance 5, 10, 2, 46, 1048, 48.61 sec  
-Instance 6, 19, 4, 46, 1950, 89.76 sec  
-Instance 7, 10, 0, 56, 1056, 289.21 sec  
+Instance 1, 6, 1, 6, 607, 0.91 sec  
+Instance 2, 8, 0, 28, 828, 1.51 sec  
+Instance 3, 10, 0, 1, 1001, 23.95 sec  
+Instance 4, 17, 1, 15, 1716, 26.36 sec  
+Instance 5, 10, 2, 46, 1048, 27.97 sec  
+Instance 6, 19, 5, 45, 1950, 48.49 sec  
