@@ -13,11 +13,11 @@ inst = st.sidebar.slider('Instance', 1, 2)
 st.sidebar.header('Preferences')
 st.sidebar.write('Select a nurse')
 
-@st.cache_data
-def load_instance(inst):
-    return read_instance(inst)
+# @st.cache_data
+# def load_instance(inst):
+#     return read_instance(inst)
 
-instance = load_instance(inst)
+instance = read_instance(inst)
 list_of_nurse_IDs = []
 for nurse in instance.N:
     list_of_nurse_IDs.append(nurse.nurse_ID)
@@ -43,6 +43,8 @@ schedule = find_schedule(instance)  # returns NSP and sol
 
 st.write(
     f'Best we can do for instance {inst} is undercoverage of {instance.best_undercover} and overcoverage of {instance.best_overcover}')
+st.write(
+    f'Best we can do for instance {inst} is violated request weights of {round(instance.best_sum_viol_req)}')
 st.write(f'Worst-off nurse has penalty off {instance.worst_off_sat}')
 
 show_nurses = st.checkbox('Show nurses ')
@@ -50,7 +52,7 @@ if show_nurses:
     for nurse in instance.N:
         st.write(nurse)
 
-show_schedule = st.checkbox('Show schedule ')
+show_schedule = st.checkbox('Show OG schedule ')
 if show_schedule:
     st.dataframe(schedule)
 
