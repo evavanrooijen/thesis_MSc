@@ -2,8 +2,7 @@ from model import read_instance
 
 for inst in range(1, 2):
     instance = read_instance(inst)
-    NSP, sol = instance.find_schedule()
-    schedule = instance.process_solution(NSP, sol)
+    schedule = instance.find_schedule()
 
     #schedule = find_schedule(instance, weight_over=1, weight_under=100)  # returns NSP and
     # for nurse in instance.N:

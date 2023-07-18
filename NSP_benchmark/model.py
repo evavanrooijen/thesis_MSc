@@ -74,20 +74,20 @@ class Instance:
                 NSP.add_indicator(c_min[nurse.numerical_ID, d, r],
                                   (1 - x[nurse.numerical_ID, d + r, 0]) +
                                   NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 1,
-                                  active_value=1)  # TODO nog voor alle shift types na instanc 1 test TODO
+                                  active_value=0)  # TODO nog voor alle shift types na instanc 1 test TODO
+
+                for d in range(2, time_horizon + 1 - r):
+                    NSP.add_indicator(c_min[nurse.numerical_ID, d, r],
+                                      (1 - x[nurse.numerical_ID, d - 1, 0]) + (1 - x[nurse.numerical_ID, d + r, 0]) +
+                                      NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 2,
+                                      active_value=0)  # TODO nog voor alle shift types na instanc 1 test TODO
 
                 # c[n, d, r] when c[n, d, -1] is NaN and should use 0
                 d = time_horizon + 1 - r
                 NSP.add_indicator(c_min[nurse.numerical_ID, d, r],
                                   (1 - x[nurse.numerical_ID, d - 1, 0]) +
                                   NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 1,
-                                  active_value=1)  # TODO nog voor alle shift types na instanc 1 test TODO
-
-                for d in range(2, time_horizon + 1 - r):
-                    NSP.add_indicator(c_min[nurse.numerical_ID, d, r],
-                                      (1 - x[nurse.numerical_ID, d - 1, 0]) + (1 - x[nurse.numerical_ID, d + r, 0]) +
-                                      NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 2,
-                                      active_value=1)  # TODO nog voor alle shift types na instanc 1 test TODO
+                                  active_value=0)  # TODO nog voor alle shift types na instanc 1 test TODO
 
         # objective function (coverage)
         obj_cover = NSP.sum([y[day, shift.numerical_ID] * weight_under + z[
@@ -218,10 +218,6 @@ class Instance:
                         day, shift.numerical_ID] == shift_day_required)
 
         sol = NSP.solve()
-        return NSP, sol
-
-    def process_solution(self, NSP, sol, vis_schedule=True):
-        print(sol)
         print(f"Optimal objective value z = {NSP.objective_value} ({NSP.get_solve_details()}")
         print(f"Worst off: {sol.get_value('worst-off penalty')}")
 
@@ -231,6 +227,7 @@ class Instance:
         for nurse in self.N:
             # DEBUG c_min[nurse.numerical_ID, d, r value
             for r in range(1, nurse.pref_min_cons):
+                #print(sum[sol.get_value(c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon +1 - r)])
                 # count min cons violations
                 d = 1
                 print(f'start: check if nurse {nurse.nurse_ID} is working {r} cons. shifts starting day {d}')
