@@ -61,6 +61,7 @@ class Instance:
         obj_worst_off = NSP.continuous_var(lb=0, name="worst-off penalty")
 
         for nurse in N:
+            # if assume pref_max > pref_min
             for r in range(nurse.pref_max_cons + 1, 11):
                 for d in range(1, time_horizon + 1 - r):
                     # count max cons violations
@@ -87,7 +88,7 @@ class Instance:
                 NSP.add_indicator(c_min[nurse.numerical_ID, d, r],
                                   (1 - x[nurse.numerical_ID, d - 1, 0]) +
                                   NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 1,
-                                  active_value=0)  # TODO nog voor alle shift types na instanc 1 test TODO
+                                  active_value=0)  # TODO nog voor alle shift types na instance 1 test
 
         # objective function (coverage)
         obj_cover = NSP.sum([y[day, shift.numerical_ID] * weight_under + z[
@@ -105,10 +106,10 @@ class Instance:
             # could assign weights to underfilled blocks vs overfilled blocks (weeks)
             for r in range(1, nurse.pref_min_cons):
                 obj_consecutiveness = obj_consecutiveness + NSP.sum(
-                    [c_min[nurse.numerical_ID, d, r] for d in range(1, time_horizon + 1 - r)])
+                    [(1-c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 1 - r)])
             for r in range(nurse.pref_max_cons + 1, nurse.max_consecutive_shifts + 1):
                 obj_consecutiveness = obj_consecutiveness + NSP.sum(
-                    [c[nurse.numerical_ID, d, r] for d in range(1, time_horizon + 1 - r)])
+                    [(1-c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 1 - r)])
 
             for shift in S:
                 for day in D:
@@ -226,37 +227,36 @@ class Instance:
 
         for nurse in self.N:
             # DEBUG c_min[nurse.numerical_ID, d, r value
-            for r in range(1, nurse.pref_min_cons):
-                #print(sum[sol.get_value(c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon +1 - r)])
+            for r in range(2, 3): #nurse.pref_min_cons):
                 # count min cons violations
                 d = 1
                 print(f'start: check if nurse {nurse.nurse_ID} is working {r} cons. shifts starting day {d}')
                 print(1 - sol.get_value(x[nurse.numerical_ID, d + r, 0]))
                 print(sum([sol.get_value(x[nurse.numerical_ID, day, 0]) for day in range(d, d + r)]))
-                print('should equal')
+                print('sum of both should equal')
                 print(r + 1)
                 if (1 - sol.get_value(x[nurse.numerical_ID, d + r, 0]) + sum(
                         [sol.get_value(x[nurse.numerical_ID, day, 0]) for day in range(d, d + r)]) == r + 1):
-                    print('PARTY')
-                print(sol.get_value(c_min[nurse.numerical_ID, d, r]))
-            # TODO nog voor alle shift types na instanc 1 test TODO
+                    print('indicator should be 1 since condition holds ( starting this d, block of length r)')
+                print(f'Indicator is {sol.get_value(c_min[nurse.numerical_ID, d, r])}')
+            # # TODO nog voor alle shift types na instanc 1 test TODO
 
             obj_consecutiveness = 0
             # sum counts of blocks of length > max_pref
             # so if pref is 4 max, then obj should be sum of c[i, d, 5] for d in range(1, time_horizon+1-5
             for r in range(1, nurse.pref_min_cons):
-                value = sum([sol.get_value(c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 1 - r)])
+                value = sum([(1-sol.get_value(c_min[nurse.numerical_ID, d, r])) for d in range(1, time_horizon + 1 - r)])
                 if value > 0:
                     print(
                         f'Nurse {nurse.nurse_ID} has min preference for {nurse.pref_min_cons} ' +
                         f'but works {value} blocks of length {r}')
 
                 obj_consecutiveness = obj_consecutiveness + sum(
-                    [sol.get_value(c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 1 - r)])
+                    [(1-sol.get_value(c_min[nurse.numerical_ID, d, r])) for d in range(1, time_horizon + 1 - r)])
+
             for r in range(nurse.pref_max_cons + 1, 11):
                 value = sum([(1 - sol.get_value(c[nurse.numerical_ID, d, r])) for d in range(1, time_horizon + 1 - r)])
-                if value > 0:
-                    print(f'Nurse {nurse.nurse_ID} has max preference for {nurse.pref_max_cons} ' +
+                print(f'Nurse {nurse.nurse_ID} has max preference for {nurse.pref_max_cons} ' +
                           f'but works {value} blocks of length {r}')
                 obj_consecutiveness = obj_consecutiveness + sum(
                     [(1 - sol.get_value(c[nurse.numerical_ID, d, r])) for d in range(1, time_horizon + 1 - r)])
@@ -301,7 +301,7 @@ class Instance:
                         if value > 0:
                             print(
                                 f'Request for shift on on day {day} violated for nurse {nurse.nurse_ID} with unscaled penalty {value}')
-
+            print(f'obj_req for nurse {nurse.numerical_ID} is {nurse_requests_violations_penalty}')
             obj_req = obj_req + nurse_requests_violations_penalty
 
             # scale request penalty on [0, 1]
@@ -310,12 +310,13 @@ class Instance:
             else:
                 nurse.requestPenalty = round(nurse_requests_violations_penalty / nurse_sum_req_penalties, 2)
 
-            # rescale consecutiveness penalty on [0, 1]
+        print(f'Max cons. penalty {max_cons_penalty_of_all_nurses}')
+        for nurse in self.N:    # rescale consecutiveness penalty on [0, 1], requires you to finish all nurses consecutiveness calculations to get the right maximum
             nurse.consecutivenessPenalty = nurse.consecutivenessPenalty / max_cons_penalty_of_all_nurses
 
             # combine requests and consecutiveness in Pi satisfaction score per nurse
-            nurse.satisfaction = (
-                                             1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
+            nurse.satisfaction = (1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
+            print(f'Nurse {nurse.nurse_ID} satisfaction score: {nurse.satisfaction} (with {nurse.pref_alpha}, scaled req {nurse.requestPenalty}, scaled cons {nurse.consecutivenessPenalty})')
 
         with open(
                 f'C:/Users/EvavR/OneDrive/Documenten/GitHub/thesis_MSc/NSP_benchmark/instances1_24/instance{self.instance_ID}/satisfaction_scores{self.instance_ID}_{test_ID}.csv',
@@ -376,8 +377,8 @@ class Nurse:
     min_consecutive_days_off: int
     max_weekends: int
     pref_alpha: float = 0.5
-    pref_min_cons: int = 3
-    pref_max_cons: int = 4
+    pref_min_cons: int = 2
+    pref_max_cons: int = 3
     requestPenalty: float = 0
     consecutivenessPenalty: float = 0
     satisfaction: float = 0
