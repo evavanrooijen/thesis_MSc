@@ -120,7 +120,7 @@ def calc_cons_penalty(consecutiveness, pref_min, pref_max):
         return pow(2, 2 * (consecutiveness - pref_max))
 
 
-def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True):
+def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True, include_satisf = True):
     S = instance.S
     N = instance.N
     W = instance.W
@@ -148,8 +148,10 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
     obj_cover == NSP.sum([y[day, shift.numerical_ID] * weight_under + z[
         day, shift.numerical_ID] * weight_over for shift in S for day in D]))
 
-    NSP.set_objective('min',  obj_cover + obj_total_dissatisfaction + obj_worst_off)
-
+    if include_satisf:
+        NSP.set_objective('min',  obj_cover + obj_total_dissatisfaction + obj_worst_off)
+    else:
+        NSP.set_objective('min', obj_cover)
     for nurse in N:
         # for r in range(nurse.pref_max_cons + 1, 11):
         #     for d in range(1, time_horizon + 2 - r):
