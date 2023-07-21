@@ -7,12 +7,13 @@ filepath = 'C:/Users/EvavR/OneDrive/Documenten/GitHub/thesis_MSc/NSP_benchmark/i
 st.title('Hello World! [nurse view]')
 
 st.sidebar.title('Options')
-st.sidebar.header('Instance')
-st.sidebar.write('Select an instance')
-inst = st.sidebar.slider('Instance', 1, 2)
+# st.sidebar.header('Instance')
+# st.sidebar.write('Select an instance')
+# inst = st.sidebar.slider('Instance', 1, 2)
 st.sidebar.header('Preferences')
 st.sidebar.write('Select a nurse')
 
+inst = 1
 # @st.cache_data
 # def load_instance(inst):
 #     return read_instance(inst)
@@ -52,12 +53,14 @@ if show_nurses:
     for nurse in instance.N:
         st.write(nurse)
 
-show_schedule = st.checkbox('Show OG schedule ')
+show_schedule = True #st.checkbox('Show OG schedule ')
 if show_schedule:
+    st.subheader('Schedule')
     st.dataframe(schedule)
 
 # print coverage scores
 
 # print satisfaction scores
 scores = pd.read_csv(f'{filepath}/instance{instance.instance_ID}/satisfaction_scores{instance.instance_ID}.csv')
+st.subheader('Satisfaction scores (unscaled)')
 st.dataframe(scores.sort_values('NurseID').set_index('NurseID'))
