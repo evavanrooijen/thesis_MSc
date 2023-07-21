@@ -17,6 +17,7 @@ class Instance:
     best_overcover: int = 1000
     best_sum_viol_req: int = 1000
     worst_off_sat: int = 1000
+    total_dissat: int = 1000
     D: set = field(init=False)
     W: list = field(init=False)
 
@@ -50,7 +51,7 @@ class Nurse:
     min_consecutive_days_off: int
     max_weekends: int
     pref_alpha: float = 0.5
-    pref_min_cons: int = 3
+    pref_min_cons: int = 2
     pref_max_cons: int = 4
     requestPenalty: float = 0
     consecutivenessPenalty: float = 0
@@ -62,7 +63,7 @@ class Nurse:
     #     self.pref_max_cons = round(np.random.normal(5, 2, 1)[0]) # TODO: CHECK THESE WITH SURVEY
 
     def __str__(self):
-        return f"Nurse {self.nurse_ID} prefers min {self.pref_min_cons} and max {self.pref_max_cons} consecutive shifs ({self.max_total_minutes / 60} hrs)"
+        return f"Nurse {self.nurse_ID} prefers min {self.pref_min_cons} and max {self.pref_max_cons} consecutive shifs with alpha {self.pref_alpha} ({self.max_total_minutes / 60} hrs)"
 
     def __hash__(self):
         return hash(self.nurse_ID)
@@ -137,68 +138,53 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
     k = NSP.binary_var_matrix(len(N), range(1, len(W) + 1), name="w")
     y = NSP.integer_var_matrix(range(1, time_horizon + 1), len(S), name="y")
     z = NSP.integer_var_matrix(range(1, time_horizon + 1), len(S), name="z")
-    c_min = NSP.binary_var_dict((i, d, r) for i in range(len(N)) for d in range(1, time_horizon + 1) for r in range(1, 11))
-
     c = NSP.binary_var_dict((i, d, r) for i in range(len(N)) for d in range(1, time_horizon + 1) for r in range(1, 11))
-    c_slack = NSP.integer_var_dict((i, d, r) for i in range(len(N)) for d in range(1, time_horizon + 1) for r in range(1, 11)) # seems redundant now
     obj_worst_off = NSP.continuous_var(lb=0, name="worst-off penalty")
-
-    # for nurse in N:
-    #     for r in range(nurse.pref_max_cons + 1, 11):
-    #         for d in range(1, time_horizon + 2 - r):
-    #             NSP.add_indicator(c[nurse.numerical_ID, d, r],
-    #                              NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) >= r-1.5,
-    #                               active_value=0)  # TODO nog voor alle shift types na instanc 1 test TODO
+    obj_total_dissatisfaction = NSP.continuous_var(lb=0, name="Total sum of dissatisfaction (penalties) of all nurses")
+    obj_cover = NSP.continuous_var(lb=0, name='Coverage penalty')
 
     # objective function (coverage)
-    obj_cover = NSP.sum([y[day, shift.numerical_ID] * weight_under + z[
-        day, shift.numerical_ID] * weight_over for shift in S for day in D])
+    NSP.add_constraint(
+    obj_cover == NSP.sum([y[day, shift.numerical_ID] * weight_under + z[
+        day, shift.numerical_ID] * weight_over for shift in S for day in D]))
 
-    # obj_slack = 0 # seems redundant now
-    # for nurse in N:
-    #     for r in range(nurse.pref_max_cons + 1, 11):
-    #         for d in range(1, time_horizon + 2 - r):
-    #             obj_slack = obj_slack + c[nurse.numerical_ID, d, r]
+    NSP.set_objective('min',  obj_cover + obj_total_dissatisfaction + obj_worst_off)
 
-    NSP.set_objective('min',  obj_cover + obj_worst_off)
-
-    #M = 11 # max slack for violations max. pref, c is 1 if block of length r exists starting day d, for nurse i
     for nurse in N:
-        for r in range(nurse.pref_max_cons + 1, 11):
-            for d in range(1, time_horizon + 2 - r):
-                NSP.add_constraint(NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) + c_slack[nurse.numerical_ID, d, r] == r)  # TODO nog voor alle shift types na instanc 1 test TODO
-                #NSP.add_constraint((1-c[nurse.numerical_ID, d, r]) * M >= c_slack[nurse.numerical_ID, d, r])
-                NSP.add(NSP.if_then(c_slack[nurse.numerical_ID, d, r] == 0, c[nurse.numerical_ID, d, r] >= 0.5))
-                NSP.add(NSP.if_then(c_slack[nurse.numerical_ID, d, r] != 0, c[nurse.numerical_ID, d, r] <= 0.5))
+        # for r in range(nurse.pref_max_cons + 1, 11):
+        #     for d in range(1, time_horizon + 2 - r):
+        #         # TODO nog voor alle shift types na instanc 1 test TODO
+        #         NSP.add(NSP.if_then(NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r, c[nurse.numerical_ID, d, r] >= 0.5))
+        #         NSP.add(NSP.if_then(NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) != r, c[nurse.numerical_ID, d, r] <= 0.5))
 
     # consecutiveness measurement for violations min. pref (copied)        # if assume pref_max > pref_min, c_min can be c
-        for r in range(1, nurse.pref_min_cons):
+        for r in range(1, 11):
             # count min cons violations
             d = 1
             NSP.add(NSP.if_then((1 - x[nurse.numerical_ID, d + r, 0]) +
-                                  NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 1, c_min[nurse.numerical_ID, d, r] >= 0.5))
+                                  NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 1, c[nurse.numerical_ID, d, r] >= 0.5))
             NSP.add(NSP.if_then((1 - x[nurse.numerical_ID, d + r, 0]) +
                                 NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) != r + 1,
-                                c_min[nurse.numerical_ID, d, r] <= 0.5))
+                                c[nurse.numerical_ID, d, r] <= 0.5))
 
             # TODO nog voor alle shift types na instance 1 test TODO
 
             for d in range(2, time_horizon + 1 - r): # check d's
                 NSP.add(NSP.if_then((1 - x[nurse.numerical_ID, d - 1, 0]) + (1 - x[nurse.numerical_ID, d + r, 0]) +
                                       NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 2,
-                                      c_min[nurse.numerical_ID, d, r] >= 0.5)) # TODO nog voor alle shift types na instanc 1 test TODO
+                                      c[nurse.numerical_ID, d, r] >= 0.5)) # TODO nog voor alle shift types na instanc 1 test TODO
                 NSP.add(NSP.if_then((1 - x[nurse.numerical_ID, d - 1, 0]) + (1 - x[nurse.numerical_ID, d + r, 0]) +
                                     NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) != r + 2,
-                                    c_min[nurse.numerical_ID, d, r]<=0.5))
+                                    c[nurse.numerical_ID, d, r]<=0.5))
                                     # c[n, d, r] when c[n, d, -1] is NaN and should use 0
             d = time_horizon + 1 - r
             NSP.add(NSP.if_then((1 - x[nurse.numerical_ID, d - 1, 0]) +
                                   NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) == r + 1,
-                                  c_min[nurse.numerical_ID, d, r] >= 0.5))  # TODO nog voor alle shift types na instance 1 test
+                                  c[nurse.numerical_ID, d, r] >= 0.5))  # TODO nog voor alle shift types na instance 1 test
 
             NSP.add(NSP.if_then((1 - x[nurse.numerical_ID, d - 1, 0]) +
                                   NSP.sum([x[nurse.numerical_ID, day, 0] for day in range(d, d + r)]) != r + 1,
-                                  c_min[nurse.numerical_ID, d, r] <= 0.5))  # TODO nog voor alle shift types na instance 1 test
+                                  c[nurse.numerical_ID, d, r] <= 0.5))  # TODO nog voor alle shift types na instance 1 test
 
     # auxiliary constraint (maximin criterion), # objective function (satisfaction)
     df_on = instance.req_on
@@ -238,6 +224,7 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
         total_penalty_per_nurse = nurse.pref_alpha * obj_consecutiveness + (
                     1 - nurse.pref_alpha) * obj_requests
         NSP.add_constraint(obj_worst_off >= total_penalty_per_nurse)
+        obj_total_dissatisfaction = obj_total_dissatisfaction + total_penalty_per_nurse
 
     # constraint 1, max one shift per day per nurse
     for day in D:
@@ -321,6 +308,7 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
     sol = NSP.solve()
     print(f"Optimal objective value z = {NSP.objective_value} ({NSP.get_solve_details()}")
     print(f"Worst off: {sol.get_value(obj_worst_off)}")
+    print(f"Total dissat: {sol.get_value(obj_total_dissatisfaction)}")
 
     max_cons_penalty_of_all_nurses = 1
     obj_req = 0
@@ -337,12 +325,11 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
 
         for r in range(1, nurse.pref_min_cons):
             obj_consecutiveness = obj_consecutiveness + sum(
-                [sol.get_value(c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
+                [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
             value = sum(
-                [sol.get_value(c_min[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
+                [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
             if value>0:
                 print(f'nurse {nurse.nurse_ID} has {value} blocks of length {r}')
-
 
         nurse.consecutivenessPenalty = obj_consecutiveness
         if max_cons_penalty_of_all_nurses <= obj_consecutiveness:
@@ -391,12 +378,15 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
             'w') as f:
         f.write('NurseID, requestsPen, consecutivenessPen, satisfaction (Pi) \n')
         worst_off = 0
+        total_dissat = 0
         for nurse in N:
             f.write(
                 f'{nurse.nurse_ID}, {round(nurse.requestPenalty, 2)}, {round(nurse.consecutivenessPenalty, 2)}, {round(nurse.satisfaction, 2)} \n')
             if worst_off < nurse.satisfaction:
                 worst_off = nurse.satisfaction
+            total_dissat = total_dissat + nurse.satisfaction
         instance.worst_off_sat = worst_off
+        instance.total_dissat = total_dissat
 
     instance.best_undercover = round(sum([sol.get_value(y[day, shift.numerical_ID]) for day in D for shift in S]))
     instance.best_overcover = round(sum([sol.get_value(z[day, shift.numerical_ID]) for day in D for shift in S]))
@@ -416,18 +406,10 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
                 for shift in S:
                     if round(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) == 1:
                         schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
-            # schedule.iloc[len(instance.N), day-1] = ' '
-            # schedule.iloc[len(instance.N)+1, day-1] = round(sol.get_value(y[day, 0]))
-            # schedule.iloc[len(instance.N)+2, day-1] = round(sol.get_value(z[day, 0]))
 
-        # for nurse in N:
-        #     schedule.iloc[nurse.numerical_ID, 15] = nurse.requestPenalty
-        #     schedule.iloc[nurse.numerical_ID, 16] = nurse.consecutivenessPenalty
-        #     schedule.iloc[nurse.numerical_ID, 17] = nurse.satisfaction
-        #
         schedule.to_csv(f'Schedule{instance.instance_ID}.csv')
         print(schedule)
-        return schedule
+        return schedule, sol.get_value(obj_total_dissatisfaction), sol.get_value(obj_worst_off), sol.get_value(obj_cover)
 
     return NSP, sol
 
@@ -437,7 +419,6 @@ def string_to_numerical_shift(shiftID, S):
     for shift in S:
         if shift.shift_ID == shiftID:
             return shift.numerical_ID
-
 
 def read_instance(inst_id):
     cover = pd.read_csv(
