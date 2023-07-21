@@ -158,9 +158,9 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
             for d in range(1, time_horizon + 2 - r):
                 obj_slack = obj_slack + c[nurse.numerical_ID, d, r]
 
-    NSP.set_objective('min',  obj_cover +  obj_worst_off - 0.0001 * obj_slack)
+    NSP.set_objective('min',  obj_cover + obj_worst_off)
 
-    M = 11 # max slack
+    #M = 11 # max slack for violations max. pref
     for nurse in N:
         for r in range(nurse.pref_max_cons + 1, 11):
             for d in range(1, time_horizon + 2 - r):
@@ -168,6 +168,9 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
                 #NSP.add_constraint((1-c[nurse.numerical_ID, d, r]) * M >= c_slack[nurse.numerical_ID, d, r])
                 NSP.add(NSP.if_then(c_slack[nurse.numerical_ID, d, r] == 0, c[nurse.numerical_ID, d, r] >= 0.5))
                 NSP.add(NSP.if_then(c_slack[nurse.numerical_ID, d, r] != 0, c[nurse.numerical_ID, d, r] <= 0.5))
+
+    # consecutiveness measurement for violations min. pref
+
 
     # auxiliary constraint (maximin criterion), # objective function (satisfaction)
     df_on = instance.req_on
@@ -306,7 +309,7 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
             obj_consecutiveness = obj_consecutiveness + sum(
                 [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
         nurse.consecutivenessPenalty = obj_consecutiveness
-        print(f'obj_cons for nurse {nurse.nurse_ID} with max pref {nurse.pref_max_cons} is {round(obj_consecutiveness)}')
+        #print(f'obj_cons for nurse {nurse.nurse_ID} with max pref {nurse.pref_max_cons} is {round(obj_consecutiveness)}')
 
         if max_cons_penalty_of_all_nurses <= obj_consecutiveness:
             max_cons_penalty_of_all_nurses = obj_consecutiveness
@@ -342,14 +345,14 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True)
         if nurse_sum_req_penalties == 0:
             nurse.requestPenalty = 0
         else:
-            nurse.requestPenalty = round(nurse_requests_violations_penalty / nurse_sum_req_penalties, 2)
+            nurse.requestPenalty = round(nurse_requests_violations_penalty) # / nurse_sum_req_penalties, 2)
 
         # rescale consecutiveness penalty on [0, 1]
-        nurse.consecutivenessPenalty = nurse.consecutivenessPenalty / max_cons_penalty_of_all_nurses
+        nurse.consecutivenessPenalty = nurse.consecutivenessPenalty #/ max_cons_penalty_of_all_nurses
 
         # combine requests and consecutiveness in Pi satisfaction score per nurse
-        nurse.satisfaction = (
-                                         1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
+        nurse.satisfaction = (1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
+        print(f'Dissatisfaction {nurse.satisfaction} for nurse {nurse.nurse_ID}, where cons {nurse.consecutivenessPenalty} and req {nurse.requestPenalty}')
 
     with open(
             f'C:/Users/EvavR/OneDrive/Documenten/GitHub/thesis_MSc/NSP_benchmark/instances1_24/instance{instance.instance_ID}/satisfaction_scores{instance.instance_ID}.csv',
