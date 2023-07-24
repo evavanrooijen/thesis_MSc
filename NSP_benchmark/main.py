@@ -2,7 +2,7 @@ from model import find_schedule, read_instance
 import numpy as np
 import matplotlib.pyplot as plt
 
-runs = 100
+runs = 10
 total_dissat_runs = []
 worst_off_runs = []
 cover_runs = []
