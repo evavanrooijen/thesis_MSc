@@ -1,0 +1,120 @@
+ 	 	 	d	p	 	 	a	d	 	 	d	d	p	 	 	d	d	d	 	 	a	a	 	 	 	d	d
+d	p	 	 	a	a	d	p	 	 	p	p	 	 	 	p	p	 	 	a	a	n	 	 	p	n	 	 
+a	p	 	 	 	 	a	a	a	 	 	a	a	 	 	a	a	n	n	 	 	a	p	n	n	 	 	 
+d	d	p	 	 	d	p	 	 	d	p	 	 	 	 	 	 	p	p	 	 	 	 	 	a	a	d	p
+d	p	p	p	 	 	 	a	a	 	 	 	 	 	p	p	 	 	 	a	p	n	 	 	a	p	p	p
+d	p	p	p	 	 	p	p	p	p	p	 	 	 	 	 	d	p	n	 	 	 	 	a	p	p	 	 
+a	 	 	a	d	d	p	p	 	 	d	d	 	 	p	p	p	p	p	 	 	d	p	 	 	 	 	p
+a	p	 	 	 	 	 	 	 	d	p	 	 	a	a	 	 	a	a	 	 	d	a	 	 	a	p	p
+ 	a	p	 	 	d	d	d	 	 	p	p	p	p	 	 	a	p	p	 	 	d	n	n	 	 	 	 
+p	p	p	p	p	 	 	p	p	 	 	p	p	p	p	 	 	a	a	a	a	d	 	 	 	 	 	 
+a	n	 	 	 	a	p	p	p	p	 	 	 	 	a	p	 	 	d	a	 	 	 	a	p	p	 	 
+ 	a	a	p	 	 	 	 	a	a	a	a	 	 	 	 	 	d	d	 	 	a	d	a	 	 	p	p
+ 	d	d	d	d	 	 	 	a	a	d	 	 	a	p	 	 	 	d	d	p	 	 	a	d	d	 	 
+n	n	 	 	a	a	p	 	 	d	a	 	 	 	 	a	p	 	 	 	d	p	p	n	n	 	 	 
+a	n	 	 	a	d	p	p	 	 	 	 	 	 	 	p	p	p	p	 	 	d	p	 	 	p	p	n
+ 	p	p	p	 	 	a	a	a	 	 	a	p	p	 	 	 	d	p	 	 	d	d	p	 	 	 	 
+p	p	n	 	 	d	n	 	 	 	 	 	 	 	d	d	d	p	 	 	 	a	d	d	 	 	a	n
+a	n	n	n	 	 	 	 	 	a	d	d	 	 	 	a	p	p	 	 	 	p	p	p	p	p	 	 
+ 	p	p	n	n	 	 	a	d	p	 	 	 	 	d	a	p	n	 	 	 	 	p	p	 	 	n	n
+d	n	n	 	 	a	a	 	 	p	p	p	 	 	d	d	d	n	 	 	 	 	a	p	p	 	 	a
+a	n	 	 	a	p	 	 	d	d	p	p	 	 	d	p	 	 	d	a	 	 	 	a	p	 	 	 
+a	n	 	 	a	d	 	 	 	 	d	d	 	 	d	p	p	 	 	 	 	d	p	p	 	 	p	n
+a	 	 	d	d	 	 	 	 	d	d	d	 	 	d	n	 	 	d	p	p	p	n	 	 	 	d	d
+a	d	p	n	n	 	 	a	d	p	 	 	 	 	 	p	n	 	 	d	d	n	 	 	 	 	d	p
+ 	d	a	 	 	a	a	p	p	p	 	 	 	 	 	d	d	p	 	 	 	p	p	 	 	 	a	p
+ 	d	p	n	n	 	 	 	 	a	a	a	a	 	 	d	p	p	p	 	 	d	p	p	 	 	 	 
+d	d	p	 	 	 	 	 	 	d	n	 	 	 	d	d	p	 	 	p	n	 	 	 	d	p	p	n
+a	d	 	 	 	 	 	p	p	p	p	 	 	 	d	p	 	 	 	d	a	n	 	 	 	a	d	n
+ 	 	a	d	p	 	 	d	d	 	 	p	p	 	 	d	p	n	 	 	 	 	 	d	d	d	p	n
+ 	d	n	n	n	 	 	 	 	a	p	 	 	 	 	a	d	p	 	 	 	d	d	 	 	a	p	n
+p	p	n	 	 	d	p	 	 	 	a	a	d	d	n	 	 	d	n	 	 	 	 	d	p	 	 	 
+ 	 	d	n	 	 	 	a	n	n	 	 	 	 	a	d	d	 	 	d	d	p	 	 	d	d	d	p
+ 	 	p	p	p	 	 	a	p	 	 	a	a	p	 	 	p	p	p	 	 	p	p	p	 	 	n	n
+ 	a	p	n	n	 	 	 	p	p	 	 	a	d	a	n	 	 	 	 	 	a	a	a	a	 	 	a
+a	d	d	 	 	d	d	 	 	a	n	 	 	 	d	n	 	 	a	d	d	 	 	a	d	 	 	 
+a	a	 	 	d	d	d	 	 	a	d	n	 	 	 	a	a	d	p	 	 	 	 	 	a	a	d	 
+d	p	n	n	 	 	 	a	a	p	p	 	 	 	 	 	d	d	p	n	 	 	 	a	a	 	 	n
+ 	a	d	 	 	d	p	n	 	 	a	d	d	p	 	 	a	a	d	 	 	 	 	 	a	a	 	 
+ 	d	p	 	 	 	 	p	p	p	 	 	 	 	a	p	 	 	p	p	 	 	d	p	 	 	d	n
+d	d	n	 	 	p	p	p	 	 	a	a	 	 	 	p	p	 	 	 	 	 	p	p	n	 	 	d
+p	p	p	 	 	 	 	p	p	p	 	 	 	 	p	p	 	 	 	d	p	 	 	d	d	d	p	 
+d	 	 	 	a	d	n	 	 	 	a	d	 	 	 	 	d	d	p	 	 	a	p	 	 	a	d	n
+ 	a	p	p	p	 	 	 	d	n	 	 	d	d	p	p	 	 	a	a	 	 	p	p	n	 	 	 
+a	a	a	n	 	 	 	 	 	a	a	 	 	 	a	p	n	n	 	 	a	p	n	n	 	 	 	a
+ 	 	d	a	p	 	 	 	a	a	 	 	a	p	p	p	n	 	 	d	a	p	 	 	a	p	 	 
+ 	 	a	p	 	 	p	p	 	 	d	p	 	 	d	d	p	p	p	 	 	 	 	 	a	a	a	 
+d	 	 	d	p	 	 	 	a	d	d	d	 	 	d	p	 	 	 	 	p	p	p	 	 	d	p	 
+a	a	a	p	p	 	 	d	d	n	 	 	 	 	 	 	 	 	 	a	a	d	 	 	 	d	a	p
+p	 	 	d	d	d	a	n	 	 	a	p	 	 	a	a	 	 	 	 	 	a	d	p	 	 	 	p
+d	d	p	 	 	 	 	 	 	d	n	 	 	a	p	 	 	a	p	 	 	n	n	 	 	p	p	p
+ 	a	a	a	 	 	 	a	d	p	 	 	 	 	d	p	 	 	a	d	 	 	 	 	a	d	p	n
+a	p	 	 	 	d	p	 	 	d	d	d	 	 	a	d	d	n	 	 	 	 	 	 	d	d	n	 
+a	 	 	a	n	 	 	 	 	a	d	d	a	p	 	 	p	p	p	p	p	 	 	 	 	 	 	 
+ 	 	a	a	a	 	 	a	p	p	p	p	 	 	d	p	 	 	a	p	p	 	 	 	 	 	 	d
+a	 	 	p	p	 	 	 	 	a	d	 	 	 	d	p	 	 	a	d	 	 	d	d	 	 	d	n
+p	 	 	a	a	a	p	n	 	 	 	 	 	 	a	a	n	 	 	 	 	a	d	 	 	 	p	p
+ 	a	n	n	n	 	 	a	p	p	n	 	 	 	 	d	d	 	 	d	p	 	 	 	 	 	d	p
+p	p	p	p	p	 	 	 	p	n	 	 	d	d	d	n	 	 	d	d	 	 	 	 	a	d	 	 
+ 	a	p	p	 	 	 	 	p	n	 	 	 	 	a	p	n	 	 	p	p	p	 	 	a	a	a	a
+ 	d	n	 	 	 	 	 	 	a	d	d	 	 	d	p	 	 	d	n	 	 	a	d	p	 	 	a
+ 	a	d	 	 	d	n	 	 	 	a	a	d	 	 	 	a	d	 	 	 	d	d	d	p	 	 	 
+p	p	 	 	 	 	 	a	d	d	 	 	a	d	 	 	d	p	p	 	 	 	d	p	n	 	 	p
+p	 	 	 	 	a	d	d	 	 	d	d	 	 	d	d	 	 	a	n	n	 	 	a	d	 	 	 
+ 	p	n	 	 	 	 	p	p	p	n	n	 	 	 	a	a	 	 	 	 	a	p	 	 	 	a	p
+a	d	 	 	a	p	 	 	p	p	n	 	 	 	p	p	p	 	 	 	 	p	p	 	 	 	 	n
+p	p	p	p	 	 	 	a	p	n	 	 	 	 	 	a	a	 	 	 	d	p	p	 	 	a	p	 
+a	d	a	p	p	 	 	a	a	a	 	 	 	 	 	d	d	n	 	 	 	 	 	 	d	d	n	 
+ 	a	d	 	 	a	d	d	 	 	d	p	 	 	 	 	a	d	d	 	 	 	 	a	a	d	d	 
+d	d	n	 	 	 	 	p	p	 	 	 	n	n	 	 	d	p	p	 	 	 	 	 	 	a	a	d
+d	p	n	 	 	 	 	 	 	d	d	d	 	 	 	p	n	 	 	 	d	d	 	 	 	a	d	n
+p	p	p	 	 	 	 	d	p	p	p	n	 	 	 	 	 	 	p	p	p	p	n	 	 	 	a	n
+d	d	n	 	 	 	 	d	d	p	 	 	 	 	 	 	a	a	a	a	a	 	 	 	 	 	d	n
+a	p	 	 	p	p	p	p	 	 	d	p	 	 	 	p	p	n	 	 	 	p	p	 	 	 	 	 
+ 	 	d	d	d	 	 	 	 	a	d	d	d	d	 	 	 	a	a	 	 	 	d	d	a	 	 	d
+ 	 	a	a	p	p	n	 	 	p	p	n	 	 	 	 	 	a	a	a	d	 	 	 	p	p	 	 
+a	p	p	p	p	 	 	 	 	 	d	d	 	 	 	d	d	 	 	d	p	 	 	 	 	 	p	p
+d	p	p	 	 	 	 	 	d	p	p	p	 	 	 	 	 	a	p	 	 	a	a	 	 	d	p	n
+ 	a	p	p	n	 	 	 	d	d	 	 	 	 	 	 	 	 	a	d	d	p	p	 	 	d	d	 
+a	 	 	a	p	 	 	 	 	 	p	p	p	p	p	 	 	a	d	p	n	 	 	p	n	 	 	 
+ 	d	p	p	 	 	d	d	d	 	 	 	 	 	a	n	n	 	 	 	d	p	n	n	 	 	 	 
+d	 	 	a	a	a	n	 	 	d	n	 	 	 	 	 	a	a	n	 	 	a	d	d	a	 	 	 
+a	d	a	n	 	 	d	d	 	 	a	a	 	 	a	a	d	d	 	 	 	 	 	 	 	a	d	 
+p	p	n	 	 	 	 	 	d	p	p	n	 	 	d	p	 	 	 	 	 	p	p	p	 	 	d	d
+ 	n	n	n	n	 	 	p	p	p	 	 	 	 	 	 	d	d	d	d	d	 	 	 	 	d	d	d
+ 	a	a	d	p	 	 	a	n	 	 	 	 	 	a	a	 	 	a	n	 	 	a	a	a	 	 	a
+p	p	p	p	p	 	 	a	n	 	 	 	 	 	a	a	d	 	 	 	 	a	p	 	 	 	a	p
+ 	a	d	p	 	 	 	p	p	 	 	 	 	p	n	 	 	a	p	 	 	 	a	a	n	 	 	p
+a	d	n	n	 	 	 	 	 	 	d	d	 	 	 	d	d	 	 	p	n	 	 	d	d	d	d	 
+ 	d	d	d	p	 	 	a	a	d	n	 	 	 	a	n	 	 	d	d	 	 	 	 	 	 	d	p
+a	a	a	 	 	a	a	p	 	 	a	a	 	 	 	 	 	a	a	 	 	 	a	a	a	a	a	 
+d	 	 	 	 	 	 	a	d	 	 	 	d	d	d	d	p	n	 	 	 	a	a	a	a	a	d	 
+ 	d	p	p	 	 	 	 	d	d	p	p	 	 	 	 	 	 	p	p	 	 	 	d	d	d	d	p
+a	p	n	 	 	 	 	 	 	a	d	d	p	 	 	 	p	p	p	p	p	 	 	 	p	n	 	 
+ 	a	a	d	d	 	 	 	d	d	d	d	n	 	 	 	a	a	 	 	 	a	n	 	 	 	d	d
+a	d	 	 	 	a	a	a	a	a	n	 	 	 	 	a	a	n	 	 	 	a	d	a	p	 	 	 
+ 	d	d	 	 	 	a	a	a	a	a	p	 	 	 	a	a	d	d	d	d	 	 	 	a	n	 	 
+ 	d	d	 	 	 	p	p	p	p	p	p	 	 	 	 	 	a	a	 	 	 	 	a	d	d	p	n
+a	n	 	 	 	 	 	a	p	p	 	 	 	d	d	d	d	p	p	 	 	 	 	 	a	a	p	n
+a	p	n	n	n	 	 	 	a	a	 	 	 	a	a	 	 	 	a	a	 	 	 	a	p	 	 	 
+n	 	 	 	p	n	 	 	 	a	a	 	 	 	a	n	n	n	 	 	 	 	a	d	p	p	p	p
+a	p	 	 	 	p	p	 	 	 	 	 	 	 	 	a	p	 	 	 	 	 	 	 	 	 	d	p
+ 	 	 	 	 	 	 	d	d	p	 	 	 	 	a	p	 	 	a	p	 	 	 	 	 	 	a	a
+a	a	 	 	 	 	 	 	 	 	 	 	 	a	a	 	 	 	 	d	d	 	 	 	 	 	a	n
+a	n	 	 	 	 	 	 	 	a	p	p	 	 	 	 	 	 	 	 	 	 	p	n	 	 	 	p
+d	d	 	 	 	 	 	 	d	p	 	 	d	d	 	 	 	 	 	 	 	 	 	a	n	 	 	d
+a	 	 	 	 	 	 	 	 	d	p	 	 	 	 	 	 	 	 	p	p	n	n	 	 	 	d	p
+a	a	 	 	 	 	 	 	 	 	 	 	p	p	 	 	 	 	d	a	 	 	 	 	 	 	a	n
+d	 	 	 	 	 	 	d	p	 	 	 	 	a	n	 	 	 	p	n	 	 	 	 	 	 	 	d
+ 	 	 	 	a	d	 	 	 	 	 	 	a	a	 	 	 	 	 	 	 	p	p	p	 	 	d	d
+a	a	 	 	 	 	 	 	d	d	 	 	a	p	 	 	 	 	 	 	 	 	 	 	 	 	d	p
+d	d	 	 	 	 	 	 	 	 	a	d	d	p	p	 	 	 	 	 	 	 	 	 	 	 	d	p
+p	p	 	 	 	 	 	p	n	 	 	 	 	 	 	 	 	p	p	 	 	 	 	 	 	 	a	a
+d	d	 	 	 	 	 	 	 	d	d	p	 	 	 	 	a	d	 	 	 	 	 	 	 	 	d	d
+ 	d	p	p	 	 	 	 	 	 	 	 	 	p	p	p	p	 	 	 	 	 	 	 	 	 	 	a
+ 	 	d	d	n	 	 	 	 	 	 	 	d	d	p	 	 	 	 	 	 	 	d	n	 	 	 	a
+ 	 	 	 	 	 	 	 	 	a	 	 	 	 	a	d	 	 	p	 	 	 	 	 	p	 	 	p
+ 	 	 	 	a	 	 	 	 	 	 	a	 	 	a	d	 	 	 	 	 	 	 	 	 	 	a	n
+ 	 	a	 	 	 	 	 	 	 	a	 	 	 	a	a	a	 	 	p	 	 	 	 	 	a	 	 
+a	 	 	 	 	 	 	 	 	 	 	 	 	a	 	 	a	a	n	 	 	 	 	 	a	 	 	 
+d	p	 	 	 	a	a	 	 	a	p	 	 	 	 	 	 	 	 	 	 	 	 	 	d	 	 	 

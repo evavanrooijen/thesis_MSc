@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
 from docplex.mp.model import Model
@@ -138,7 +139,7 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
     # constraint 1, max one shift per day per nurse
     for day in D:
         for nurse in N:
-            NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) <= 1)
+            NSP.add_constraint(NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) <= 1)
 
     # constraint 2, shift rotation (not in instance 1 so still needs to be tested)
     for nurse in N:
@@ -151,26 +152,26 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
     for shift in S:
         for nurse in N:
             NSP.add_constraint(
-                sum([x[nurse.numerical_ID, day, shift.numerical_ID] for day in D]) <= nurse.max_shifts.get(
+                NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] for day in D]) <= nurse.max_shifts.get(
                     shift.shift_ID))
 
     # constraint 4: FTE
     for nurse in N:
-        NSP.add_constraint(nurse.min_total_minutes <= sum(
-            [sum([x[nurse.numerical_ID, day, shift.numerical_ID] * shift.length_in_min for shift in S]) for day in D]))
+        NSP.add_constraint(nurse.min_total_minutes <= NSP.sum(
+            [NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] * shift.length_in_min for shift in S]) for day in D]))
         NSP.add_constraint(
-            sum([sum([x[nurse.numerical_ID, day, shift.numerical_ID] * shift.length_in_min for shift in S]) for day in
+            NSP.sum([NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] * shift.length_in_min for shift in S]) for day in
                  D]) <= nurse.max_total_minutes)
 
     # constraint 5: max consecutive shifts
     for nurse in N:
         for day in range(1, time_horizon - nurse.max_consecutive_shifts + 1):
-            NSP.add_constraint(sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day,
-                                                                                                               day + nurse.max_consecutive_shifts + 1)]) <= nurse.max_consecutive_shifts)
+            NSP.add_constraint(sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S
+                                    for j in range(day, day + nurse.max_consecutive_shifts + 1)]) <= nurse.max_consecutive_shifts)
     # constraint 6: min consecutiveness
     for nurse in N:
         for s in range(1, nurse.min_consecutive_shifts):
-            for day in range(1, time_horizon - (s + 1)):
+            for day in range(1, time_horizon - s):
                 NSP.add_constraint(sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (s - sum(
                     [x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in
                      range(day + 1, day + s + 1)])) + sum(
@@ -179,11 +180,12 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
     # constraint 7: min consecutiveness days off
     for nurse in N:
         for s in range(1, nurse.min_consecutive_days_off):
-            for day in range(1, time_horizon - (s + 1)):
-                NSP.add_constraint(1-sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) + (sum(
-                    [x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in
-                     range(day + 1, day + s + 1)])) + 1 - sum(
-                    [x[nurse.numerical_ID, day + s + 1, shift.numerical_ID] for shift in S]) >= 0.01)
+            for day in range(1, time_horizon - s):
+                NSP.add_constraint(
+                    (1-NSP.sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]))
+                    + NSP.sum([x[nurse.numerical_ID, j, shift.numerical_ID] for shift in S for j in range(day + 1, day + s + 1)])
+                    + (1 - NSP.sum([x[nurse.numerical_ID, day + s + 1, shift.numerical_ID] for shift in S]))
+                    >= 1)
 
     # # constraint 8: max weekends
     for nurse in N:
@@ -199,7 +201,7 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
 
     # constraint 9: days off
     for nurse in N:
-        for day in nurse.days_off:
+        for day in nurse.days_off: # starts at 0
             for shift in S:
                 NSP.add_constraint(x[nurse.numerical_ID, day + 1, shift.numerical_ID] == 0)
 
@@ -235,22 +237,21 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
                     nurse_requests_penalty = nurse_requests_penalty + ((1-sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) * df_on.loc[
                         (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (df_on['Day'] == day-1)].Weight.item())
         obj_requests = obj_requests + nurse_requests_penalty
-    print(f'Shifts underassigned: {under}, \nShifts overassigned: {over}, \nTotal request penalty: {obj_requests} \n')
+    #print(f'Shifts underassigned: {under}, \nShifts overassigned: {over}, \nTotal request penalty: {obj_requests} \n')
 
     # visualize schedule, who works when
     if vis_schedule:
-        schedule = pd.read_csv(f'../NSP_benchmark/instances1_24/instance{instance.instance_ID}/schedule_to_fill.csv', delimiter=';')
-        schedule.set_index('nurse', inplace=True)
-
+        arr = np.empty((len(instance.N), time_horizon), dtype=str)
         for nurse in N:
             for day in D:
                 if sum([sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]) for shift in S]) == 0.0:
-                    schedule.iloc[nurse.numerical_ID, day - 1] = '_' # nurse is not working any shift this day
+                    arr[nurse.numerical_ID][day-1] = ' '
                 for shift in S:
                     if round(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) == 1:
-                        schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
+                        arr[nurse.numerical_ID][day - 1] = shift.shift_ID
 
-        schedule.to_csv(r'instances1_24\instance{}\solution_schedule{}.csv'.format(instance.instance_ID, instance.instance_ID))
+        schedule = pd.DataFrame(arr)
+        schedule.to_csv(r'instances1_24\instance{}\solution_schedule{}.txt'.format(instance.instance_ID, instance.instance_ID), sep ='\t', header=False, index=False)
 
     with open('benchmark_all_instances.txt', 'a') as f:
         f.write(f'Instance {instance.instance_ID}, {round(under)}, {round(over)}, {round(obj_requests)}, {round(under*100+over+obj_requests)}, {round(runtime, 2)} sec  \n')
@@ -270,8 +271,7 @@ def read_instance(inst_id):
     staff = pd.read_csv(r'instances1_24\instance{}\staff.csv'.format(inst_id))
     shifts = pd.read_csv(r'instances1_24\instance{}\shifts.csv'.format(inst_id))
     daysOff = pd.read_csv(r'instances1_24\instance{}\daysOff.csv'.format(inst_id))
-
-    time_horizons = [14, 14, 14, 28, 28, 28, 28, 28, 28, 28]
+    time_horizons = [14, 14, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 42 , 42, 56, 56, 84, 84, 26*7, 26*7]
 
     N = set()
     ID = 0
@@ -294,9 +294,16 @@ def read_instance(inst_id):
     for nurse in N:
         nurseID = nurse.nurse_ID
         if inst_id>3:
+            # 3, 4, 5, ...
             daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes1 (start at zero)'].item()
             daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
             nurse.days_off = [daysOffNurse1, daysOffNurse2]
+        if inst_id>13:
+            # 14, 15, 16, ...
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes1 (start at zero)'].item()
+            daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1, daysOffNurse2]
+            # TODO fix this
         else:
             daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
             nurse.days_off = [daysOffNurse1]
@@ -310,6 +317,8 @@ def read_instance(inst_id):
 
     for index, row in shifts.iterrows():
         if index == 0:
+            continue
+        if isinstance(row['Shifts which cannot follow this shift | separated'], float):
             continue
         if (len(row['Shifts which cannot follow this shift | separated'])) > 1:
             list_off_string_IDS = row['Shifts which cannot follow this shift | separated'].split('|')
@@ -325,3 +334,6 @@ def read_instance(inst_id):
         assert len(N) != 0, "Empty set of nurses"
 
     return Instance(inst_id, time_horizons[inst_id-1], S, N, req_on, req_off)
+
+for inst in range(11, 12):
+    instance = read_instance(inst)
