@@ -120,7 +120,7 @@ def calc_cons_penalty(consecutiveness, pref_min, pref_max):
         return pow(2, 2 * (consecutiveness - pref_max))
 
 
-def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True, include_satisf = True):
+def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True, include_satisf = True, runtime = 5*60):
     S = instance.S
     N = instance.N
     W = instance.W
@@ -131,7 +131,7 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
     NSP = Model('NSP')
     NSP.float_precision = 10
     NSP.context.cplex_parameters.mip.tolerances.mipgap = 0  # check if gap is always 0 ensured
-    NSP.set_time_limit(5 * 60)  # seconds
+    NSP.set_time_limit(runtime)  # seconds
 
     # decision variables
     x = NSP.binary_var_dict((i, d, s) for i in range(len(N)) for d in range(1, time_horizon + 1) for s in range(len(S)))
@@ -308,9 +308,9 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
                     day, shift.numerical_ID] == shift_day_required)
 
     sol = NSP.solve()
-    print(f"Optimal objective value z = {NSP.objective_value} ({NSP.get_solve_details()}")
-    print(f"Worst off: {sol.get_value(obj_worst_off)}")
-    print(f"Total dissat: {sol.get_value(obj_total_dissatisfaction)}")
+    print(f"Optimal objective value z = {NSP.objective_value}")
+    #print(f"Worst off: {sol.get_value(obj_worst_off)}")
+    #print(f"Total dissat: {sol.get_value(obj_total_dissatisfaction)}")
 
     max_cons_penalty_of_all_nurses = 1
     obj_req = 0
@@ -322,16 +322,16 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
                 [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
             value = sum(
                 [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
-            if value>0:
-                print(f'nurse {nurse.nurse_ID} has {value} blocks of length {r}')
+            #if value>0:
+                #print(f'nurse {nurse.nurse_ID} has {value} blocks of length {r}')
 
         for r in range(1, nurse.pref_min_cons):
             obj_consecutiveness = obj_consecutiveness + sum(
                 [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
             value = sum(
                 [sol.get_value(c[nurse.numerical_ID, d, r]) for d in range(1, time_horizon + 2 - r)])
-            if value>0:
-                print(f'nurse {nurse.nurse_ID} has {value} blocks of length {r}')
+            #if value>0:
+                #print(f'nurse {nurse.nurse_ID} has {value} blocks of length {r}')
 
         nurse.consecutivenessPenalty = obj_consecutiveness
         if max_cons_penalty_of_all_nurses <= obj_consecutiveness:
@@ -373,7 +373,7 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
 
         # combine requests and consecutiveness in Pi satisfaction score per nurse
         nurse.satisfaction = (1 - nurse.pref_alpha) * nurse.requestPenalty + nurse.pref_alpha * nurse.consecutivenessPenalty
-        print(f'Dissatisfaction {nurse.satisfaction} for nurse {nurse.nurse_ID}, where cons {nurse.consecutivenessPenalty} and req {nurse.requestPenalty}')
+        #print(f'Dissatisfaction {nurse.satisfaction} for nurse {nurse.nurse_ID}, where cons {nurse.consecutivenessPenalty} and req {nurse.requestPenalty}')
 
     with open(
             f'C:/Users/EvavR/OneDrive/Documenten/GitHub/thesis_MSc/NSP_benchmark/instances1_24/instance{instance.instance_ID}/satisfaction_scores{instance.instance_ID}.csv',
@@ -410,10 +410,10 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
                         schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
 
         schedule.to_csv(f'Schedule{instance.instance_ID}.csv')
-        print(schedule)
+        #print(schedule)
         return schedule, sol.get_value(obj_total_dissatisfaction), sol.get_value(obj_worst_off), sol.get_value(obj_cover)
 
-    return NSP, sol
+    return worst_off, total_dissat, instance.best_undercover, instance.best_overcover, sol.get_objective_value(), NSP.get_solve_details()
 
 
 def string_to_numerical_shift(shiftID, S):
@@ -462,9 +462,13 @@ def read_instance(inst_id):
 
     for nurse in N:
         nurseID = nurse.nurse_ID
-        daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
-        # daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
-        nurse.days_off = [daysOffNurse1]
+        if inst_id < 4:
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1]
+        else:
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes1 (start at zero)'].item()
+            daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1, daysOffNurse2]
 
     S = set()
     ID = 0
@@ -481,6 +485,7 @@ def read_instance(inst_id):
             list_off_string_IDS = [row['Shifts which cannot follow this shift | separated']]
 
         list_of_impossible_shifts_to_follow = [string_to_numerical_shift(shiftID, S) for shiftID in list_off_string_IDS]
+
         for shift in S:
             if shift.shift_ID == row['ShiftID']:
                 shift.shifts_cannot_follow_this = list_of_impossible_shifts_to_follow
@@ -498,3 +503,9 @@ if False:
     open("results.txt", "w").close()
     for beta in range(11):
         find_schedule(inst_1, beta=beta / 10, weight_under=1, weight_over=1)
+
+for i in range(4, 10):
+    worst_off, total_dissat, under, over, obj, solve_details = find_schedule(read_instance(i), runtime=10*60, vis_schedule=False, include_satisf=True, weight_over=1)
+    print(f'Instance {i}: worst-off {worst_off}; total dissatisfaction {total_dissat} and coverage {under*100 + over} (under {under} + over {over})')
+    print(solve_details)
+    print('\n')

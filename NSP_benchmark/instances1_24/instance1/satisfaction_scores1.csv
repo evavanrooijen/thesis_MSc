@@ -1,9 +1,9 @@
 NurseID, requestsPen, consecutivenessPen, satisfaction (Pi) 
-C, 2, 0, 1.8 
-G, 0, 0, 0.0 
-B, 3, 0, 2.7 
-H, 7, 1.0, 4.6 
-D, 0, 1.0, 0.2 
+H, 2, 0, 1.0 
+B, 3, 0, 1.5 
+D, 2, 1.0, 1.5 
 E, 0, 0, 0.0 
-F, 3, 0, 2.4 
 A, 0, 0, 0.0 
+F, 3, 0, 1.5 
+C, 2, 0, 1.0 
+G, 0, 0, 0.0 
