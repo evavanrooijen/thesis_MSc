@@ -144,9 +144,8 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
     for nurse in N:
         for day in range(1, time_horizon):
             for shift in S:
-                for u in shift.shifts_cannot_follow_this:  # u must be the numerical shift ID of the shift that cannot follow shift t for example [0]
+                for u in shift.shifts_cannot_follow_this:
                     NSP.add_constraint(x[nurse.numerical_ID, day, shift.numerical_ID] + x[nurse.numerical_ID, day + 1, u] <= 1)
-                    # x[0, 0, 1] (late on day 0) cannot have x[0, 1, 0] (early on day 1)
 
     # constraint 3: personal shift limitations
     for shift in S:
@@ -204,7 +203,7 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
             for shift in S:
                 NSP.add_constraint(x[nurse.numerical_ID, day + 1, shift.numerical_ID] == 0)
 
-    # constraint 10: cover requirements (D is range (1, horizon+1) while shift.cover_req starts from day 0)
+    # constraint 10: cover requirements
     for day in D:
         for shift in S:
             shift_day_required = shift.cover_req.get(day-1) # per shift type
@@ -217,7 +216,6 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
     runtime = end - start
 
     print(f"Optimal objective value z = {NSP.objective_value} took {round(runtime, 2)} sec. ({NSP.get_solve_details()}")
-    # print satisfaction of the worst off nurse
     under = sol.get_value(sum([y[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
     over = sol.get_value(sum([z[day, shift.numerical_ID] for shift in instance.S for day in instance.D]))
     df_on = instance.req_on
@@ -229,13 +227,11 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
             for day in D:
                 # check if nurse has request for this shift, day
                 if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (df_off['Day'] == day-1)].Weight.any():
-                    # if yes, add to obj_requests if violated
                     nurse_requests_penalty = nurse_requests_penalty + (sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]) * df_off.loc[
                         (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (df_off['Day'] == day-1)].Weight.item())
 
                 # check if nurse has request for this shift, day
                 if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (df_on['Day'] == day-1)].Weight.any():
-                    # if yes, add to obj_requests if violated
                     nurse_requests_penalty = nurse_requests_penalty + ((1-sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) * df_on.loc[
                         (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (df_on['Day'] == day-1)].Weight.item())
         obj_requests = obj_requests + nurse_requests_penalty
@@ -255,112 +251,11 @@ def find_schedule(instance, time_limit = 5*60, weight_under = 100, weight_over =
                         schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
 
         schedule.to_csv(r'instances1_24\instance{}\solution_schedule{}.csv'.format(instance.instance_ID, instance.instance_ID))
-        print(schedule)
 
     with open('benchmark_all_instances.txt', 'a') as f:
         f.write(f'Instance {instance.instance_ID}, {round(under)}, {round(over)}, {round(obj_requests)}, {round(under*100+over+obj_requests)}, {round(runtime, 2)} sec  \n')
 
-            # # consecutiveness preferences
-            # working_on = False
-            # count_on = 0
-            # consPerNurse = []
-            #
-            # for day in D:
-            #     if sum([x[nurse.numerical_ID, day, shift.numerical_ID] for shift in S]) is not 0.0:
-            #         count_on += 1
-            #         working_on = True
-            #     else:
-            #         if working_on:
-            #             consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-            #             count_on = 0
-            #             working_on = False
-            #
-            # if working_on:
-            #     consPerNurse.append(calc_cons_penalty(count_on, nurse.pref_min_cons, nurse.pref_max_cons))
-            #
-            # cons_all_nurses.append(
-            #     sum(consPerNurse) / len(consPerNurse))  # average penalty of all blocks in nurse i's roster
-            #
-            # # satisfaction_scores[nurse.numerical_ID, 2] = sum(consPerNurse)/len(consPerNurse)
-            # f.write(f'{sum(consPerNurse) / len(consPerNurse)}, ')
-            #
-            # # combine requests and consecutiveness in Pi satisfaction score per nurse
-            # alpha = nurse.pref_alpha
-            # # satisfaction_scores[nurse.numerical_ID, 3] = (1-alpha) * satisfaction_scores[nurse.numerical_ID, 1] + alpha * satisfaction_scores[nurse.numerical_ID, 2]
-            # f.write(f'{(1 - alpha) * nurse_requests_penalty + alpha * sum(consPerNurse) / len(consPerNurse)}\n')
-
     return NSP, sol
-
-def print_schedule(sol, instance):
-    # TODO: fix size of pd dataframe to export schedule (IndexError)
-    S = instance.S
-    N = instance.N
-    W = instance.W
-    time_horizon = instance.horizon
-    D = instance.D
-    # visualize schedule, who works when
-    # schedule = pd.read_csv(r'../data/schedule_to_fill.csv')
-    schedule = pd.DataFrame()
-    # schedule.set_index('nurse', inplace=True)
-    for nurse in N:
-        for shift in S:
-            for day in D:
-                if sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]) == 1.0:
-                    schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
-                else:
-                    schedule.iloc[nurse.numerical_ID, day - 1] = '_'
-
-    # add over- and undercoverage rows
-    under = 0
-    over = 0
-    for day in D:
-        schedule.iloc[8, day - 1] = ' '
-        schedule.iloc[9, day - 1] = int(sol.get_value(y[day, 0]))
-        under = under + int(sol.get_value(y[day, 0]))
-        schedule.iloc[10, day - 1] = int(sol.get_value(z[day, 0]))
-        over = over + int(sol.get_value(z[day, 0]))
-
-    # add requests % column
-    obj_requests = 0
-    obj_requests_total = 0
-    # requests: sum of weights of violated requests per nurse, day, shift
-    df_on = instance.req_on
-    df_off = instance.req_off
-    for nurse in N:
-        schedule.iloc[nurse.numerical_ID, 14] = ' '
-        for shift in S:
-            for day in D:
-                # check if nurse has request for this shift, day
-                if df_off.loc[(df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
-                        df_off['Day'] == day - 1)].Weight.any():
-                    # if yes, add to obj_requests if violated
-                    obj_requests = obj_requests + (
-                                int(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID])) * df_off.loc[
-                            (df_off['EmployeeID'] == nurse.nurse_ID) & (df_off['ShiftID'] == shift.shift_ID) & (
-                                        df_off['Day'] == day - 1)].Weight.item())
-
-                # check if nurse has request for this shift, day
-                if df_on.loc[(df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
-                        df_on['Day'] == day - 1)].Weight.any():
-                    # if yes, add to obj_requests if violated
-                    obj_requests = obj_requests + (
-                                (1 - int(sol.get_value(x[nurse.numerical_ID, day, shift.numerical_ID]))) * df_on.loc[
-                            (df_on['EmployeeID'] == nurse.nurse_ID) & (df_on['ShiftID'] == shift.shift_ID) & (
-                                        df_on['Day'] == day - 1)].Weight.item())
-        schedule.iloc[nurse.numerical_ID, 15] = obj_requests
-        obj_requests_total = obj_requests_total + obj_requests
-        obj_requests = 0
-
-    schedule.to_csv('solution_schedule_instance{}.csv'.format(instance.instance_ID))
-    print(f'{beta}, {under}, {over}, {obj_requests_total}')
-    # write to result file, append: beta, under, over, requests
-    with open('results.txt', 'a') as f:
-        f.write(f'{beta}, {under}, {over}, {obj_requests_total}\n')
-
-    print(schedule)  # to app st.dataframe(schedule)
-    verticalPenalty = under + over
-    horizontalPenalty = obj_requests_total
-    return verticalPenalty, horizontalPenalty
 
 def string_to_numerical_shift(shiftID, S):
     # look for shift in set S with shiftID string
@@ -390,7 +285,6 @@ def read_instance(inst_id):
 
             # add to dict
             max_shifts_dict[list_max_shifts[0]] = int(list_max_shifts[1])
-            #max_shifts_dict = {list_max_shifts[0]: int(list_max_shifts[1])}
 
         N.add(Nurse(ID, row['ID'], [], max_shifts_dict, row['MaxTotalMinutes'],
                     row['MinTotalMinutes'], row['MaxConsecutiveShifts'], row['MinConsecutiveShifts'],
