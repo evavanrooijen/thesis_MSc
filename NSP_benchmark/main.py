@@ -19,24 +19,24 @@ for run in range(runs):
     schedule, tot_dis_BM, worst_off_BM, coverage_BM = find_schedule(instance, weight_over=10,
                                                            weight_under=100, include_satisf = False)  # returns NSP and sol
 
-    total_dissat_runs.append(tot_dis)
+    total_dissat_runs.append(tot_dis/len(instance.N))
     worst_off_runs.append(worst_off)
     cover_runs.append(coverage/100)
-    total_dissat_BMs.append(tot_dis_BM)
+    total_dissat_BMs.append(tot_dis_BM/len(instance.N))
     worst_off_BMs.append(worst_off_BM)
     coverage_BMs.append(coverage_BM/100)
     # TODO: show also schedules with same coverage but lower satisfaction scores (obj = coverage only)
 
-plt.plot(np.arange(runs), total_dissat_BMs, color='red', label='BM dissatisfaction penalty (sum)')
-plt.plot(np.arange(runs), worst_off_BMs, color='red', label = 'BM worst off (dissatisfaction)')
-plt.plot(np.arange(runs), coverage_BMs, color='orange', label='BM (under)coverage penalty')
+plt.scatter(np.arange(runs), total_dissat_BMs, s='x', color='red', label='BM dissatisfaction penalty (sum)')
+plt.scatter(np.arange(runs), worst_off_BMs, s='o',color='red', label = 'BM worst off (dissatisfaction)')
+plt.scatter(np.arange(runs), coverage_BMs,s='-', color='orange', label='BM (under)coverage penalty')
 
-plt.plot(np.arange(runs), total_dissat_runs, color='green', label='dissatisfaction penalty (sum)')
-plt.plot(np.arange(runs), worst_off_runs, color='green', label = 'worst off (dissatisfaction)')
-plt.plot(np.arange(runs), cover_runs, color='orange', label='(under)coverage penalty')
+plt.scatter(np.arange(runs), total_dissat_runs, s='x', color='green', label='dissatisfaction penalty (sum)')
+plt.scatter(np.arange(runs), worst_off_runs, s='o',color='green', label = 'worst off (dissatisfaction)')
+plt.scatter(np.arange(runs), cover_runs, s='-', color='orange', label='(under)coverage penalty')
 plt.title(f'Result for {runs} simulation runs')
 plt.xlabel('run')
 plt.ylabel('objective')
-#plt.legend(loc='upper right')
+plt.legend(loc='upper right')
 plt.savefig(f'simulation results/Simulation results for {runs} runs.png')
 plt.show()
