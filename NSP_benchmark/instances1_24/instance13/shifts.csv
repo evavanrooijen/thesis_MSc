@@ -1,0 +1,19 @@
+ShiftID,Length in mins,Shifts which cannot follow this shift | separated
+a1,480,
+a2,480,
+a3,480,
+a4,600,
+a5,720,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5
+d1,480,a1|a2|a3|a4
+d2,480,a1|a2|a3|a4
+d3,480,a1|a2|a3|a4
+d4,600,a1|a2|a3|a4|a5
+d5,720,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5
+p1,480,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5
+p2,480,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5
+p3,480,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5
+p4,600,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5
+p5,720,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5|p4|p5
+n1,480,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5|p1|p2|p3|p4|p5
+n2,600,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5|p1|p2|p3|p4|p5|n3
+n3,720,a1|a2|a3|a4|a5|d1|d2|d3|d4|d5|p1|p2|p3|p4|p5|n3

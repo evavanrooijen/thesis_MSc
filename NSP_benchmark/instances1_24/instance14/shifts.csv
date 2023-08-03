@@ -1,0 +1,5 @@
+ShiftID,Length in mins,Shifts which cannot follow this shift | separated
+E,480,
+D,480,
+L,480,E|D
+N,600,E|D|L

@@ -1,0 +1,20 @@
+ 	D	D	D	D	 	 	D	D	D	 	 	D	D
+ 	D	D	D	D	 	 	 	 	D	D	D	D	D
+L	 	 	E	L	 	 	 	 	E	D	L	L	L
+ 	L	L	L	L	 	 	E	E	L	 	 	E	E
+E	E	E	 	 	 	 	 	 	E	E	E	E	E
+ 	E	E	D	D	 	 	E	E	E	 	 	D	D
+D	L	L	 	 	E	E	L	 	 	L	L	 	 
+ 	 	E	E	D	D	L	 	 	D	D	L	 	 
+D	D	D	D	 	 	 	L	L	L	 	 	D	L
+D	 	 	E	E	 	 	E	D	D	 	 	D	D
+E	 	 	 	 	D	D	D	D	D	D	 	 	 
+L	L	 	 	 	D	D	D	L	L	L	 	 	 
+ 	 	D	D	L	 	 	 	E	E	E	E	L	L
+ 	D	D	L	L	L	L	 	 	 	D	D	 	 
+L	 	 	 	D	D	D	D	D	L	 	 	 	 
+ 	 	 	 	 	E	E	D	 	 	 	L	 	 
+ 	 	L	 	 	 	 	L	 	 	 	 	D	D
+ 	 	 	 	 	D	D	D	 	 	 	D	 	 
+ 	E	 	 	 	E	E	E	 	 	 	 	 	 
+ 	 	 	E	E	E	D	 	 	 	 	 	 	 
