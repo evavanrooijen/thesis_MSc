@@ -398,7 +398,7 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
     if vis_schedule:
         schedule = pd.read_csv(
             f'C:/Users/EvavR/OneDrive/Documenten/GitHub/thesis_MSc/NSP_benchmark/instances1_24/instance{instance.instance_ID}/schedule_to_fill.csv',
-            delimiter=',')
+            delimiter=';')
         schedule.set_index('nurse', inplace=True)
 
         for day in D:
@@ -410,11 +410,9 @@ def find_schedule(instance, weight_under=100, weight_over=10, vis_schedule=True,
                         schedule.iloc[nurse.numerical_ID, day - 1] = shift.shift_ID
 
         schedule.to_csv(f'Schedule{instance.instance_ID}.csv')
-        print(schedule)
         return schedule, sol.get_value(obj_total_dissatisfaction), sol.get_value(obj_worst_off), sol.get_value(obj_cover)
 
     return NSP, sol
-
 
 def string_to_numerical_shift(shiftID, S):
     # look for shift in set S with shiftID string
@@ -460,11 +458,18 @@ def read_instance(inst_id):
                     row['MinConsecutiveDaysOff'], row['MaxWeekends']))
         ID = ID + 1
 
-    for nurse in N:
-        nurseID = nurse.nurse_ID
-        daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
-        # daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
-        nurse.days_off = [daysOffNurse1]
+    if inst_id < 4:
+        for nurse in N:
+            nurseID = nurse.nurse_ID
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1]
+
+    elif inst_id >= 4:
+        for nurse in N:
+            nurseID = nurse.nurse_ID
+            daysOffNurse1 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes1 (start at zero)'].item()
+            daysOffNurse2 = daysOff.loc[daysOff['EmployeeID'] == nurseID]['DayIndexes2 (start at zero)'].item()
+            nurse.days_off = [daysOffNurse1, daysOffNurse2]
 
     S = set()
     ID = 0
